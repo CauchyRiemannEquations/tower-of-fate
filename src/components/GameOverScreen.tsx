@@ -1,9 +1,8 @@
-import { useState } from 'react';
 import { actions } from '../game/state/actions';
 import { useGameStore } from '../hooks/useGameStore';
 import { BLOCKS } from '../game/config/blocks';
 import type { BlockTypeId } from '../types';
-import { IcCopy, IcHome, IcRestart } from './icons';
+import { IcHome, IcRestart } from './icons';
 import { FateReport } from './FateReport';
 
 function favoriteBlock(counts: Record<BlockTypeId, number>): string {
@@ -14,25 +13,8 @@ function favoriteBlock(counts: Record<BlockTypeId, number>): string {
 
 export function GameOverScreen() {
   const s = useGameStore();
-  const [copied, setCopied] = useState(false);
   const info = s.gameOver;
   if (!info) return null;
-
-  const shareText = `[운명의 탑] ${info.finalScore.toLocaleString()}점! ${
-    s.stats.maxFloor
-  }층 도달, 최고 위험 ${s.stats.maxRiskSurvived}%에서 생존 (PERFECT ${
-    s.stats.perfects
-  }회)`;
-
-  const copyShare = async () => {
-    try {
-      await navigator.clipboard.writeText(shareText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1600);
-    } catch {
-      /* 클립보드 미지원 환경 */
-    }
-  };
 
   return (
     <div className="overlay gameover-screen">
@@ -82,12 +64,6 @@ export function GameOverScreen() {
             <span className="btn-main">
               <IcHome />
               메인 화면
-            </span>
-          </button>
-          <button className="btn btn-ghost" onClick={copyShare}>
-            <span className="btn-main">
-              <IcCopy />
-              {copied ? '복사됨!' : '결과 공유'}
             </span>
           </button>
         </div>

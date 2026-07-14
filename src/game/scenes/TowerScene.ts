@@ -227,15 +227,24 @@ export class TowerScene extends Phaser.Scene {
 
   // ── 조준 ─────────────────────────────────────────────
 
+  /**
+   * 조준 블록의 기준 y — 탑 꼭대기 위 일정 거리에 띄우되,
+   * 상단 HUD(DOM)에 가려지지 않는 높이 아래로 내려온다.
+   */
+  private aimBaseY(): number {
+    const topY = D.groundTop - tower.totalHeight();
+    const belowHud = this.cameras.main.scrollY + 255;
+    return Math.max(belowHud, topY - 150);
+  }
+
   private spawnAiming(id: BlockTypeId) {
     this.aimSprite?.destroy();
     const def = BLOCKS[id];
     this.aimDef = def;
     this.setAimX(tower.top()?.x ?? 0);
 
-    const cam = this.cameras.main;
     const sprite = this.add
-      .image(D.baseX + this.aimX, cam.scrollY + 180, blockTextureKey(def))
+      .image(D.baseX + this.aimX, this.aimBaseY(), blockTextureKey(def))
       .setOrigin(0.5, 1)
       .setDepth(25);
     sprite.setDisplaySize(def.width, def.height);
@@ -255,10 +264,9 @@ export class TowerScene extends Phaser.Scene {
 
     const phase = store.getState().phase;
     if (phase === 'aiming' && this.aimSprite && this.aimDef) {
-      const cam = this.cameras.main;
       const targetX = D.baseX + this.aimX;
       this.aimSprite.x += (targetX - this.aimSprite.x) * 0.55;
-      this.aimSprite.y = cam.scrollY + 180 + Math.sin(time / 380) * 4;
+      this.aimSprite.y = this.aimBaseY() + Math.sin(time / 380) * 4;
 
       if (this.aimDirty) {
         this.aimDirty = false;
@@ -280,7 +288,7 @@ export class TowerScene extends Phaser.Scene {
     const color = riskColor(b.total);
 
     // 낙하 가이드 점선
-    const topY = this.cameras.main.scrollY + 190;
+    const topY = this.aimBaseY() + 8;
     g.lineStyle(2, color, 0.5);
     for (let y = topY; y < landingBottom - def.height - 6; y += 18) {
       g.lineBetween(gx, y, gx, Math.min(y + 10, landingBottom - def.height - 6));

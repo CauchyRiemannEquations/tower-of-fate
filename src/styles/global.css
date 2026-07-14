@@ -87,27 +87,27 @@ button {
 .chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: rgba(20, 14, 50, 0.72);
-  border: 1px solid rgba(160, 140, 255, 0.35);
+  gap: 4px;
+  background: rgba(20, 14, 50, 0.6);
+  border: 1px solid rgba(160, 140, 255, 0.3);
   backdrop-filter: blur(6px);
   border-radius: 999px;
-  padding: 6px 12px;
-  font-size: 14.5px;
+  padding: 5px 10px;
+  font-size: 13.5px;
   white-space: nowrap;
 }
 
 .floor-chip { color: #cdbfff; }
-.best-chip { color: #ffd76a; margin-right: auto; }
 .vault-chip { color: #7effc9; }
-.tower-chip { color: #ffe98a; }
+.tower-chip { color: #ffe98a; margin-right: auto; }
 
 .icon-btn {
-  background: rgba(20, 14, 50, 0.72);
-  border: 1px solid rgba(160, 140, 255, 0.35);
+  background: rgba(20, 14, 50, 0.6);
+  border: 1px solid rgba(160, 140, 255, 0.3);
   border-radius: 999px;
-  width: 38px;
-  height: 38px;
+  width: 33px;
+  height: 33px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
   color: #cdbfff;
@@ -116,18 +116,26 @@ button {
 /* ── 위험 바 ────────────────────────────────────────── */
 .risk-panel {
   margin-top: 2px;
-  background: rgba(20, 14, 50, 0.72);
-  border: 1px solid rgba(160, 140, 255, 0.3);
+  background: rgba(20, 14, 50, 0.6);
+  border: 1px solid rgba(160, 140, 255, 0.28);
   backdrop-filter: blur(6px);
-  border-radius: 14px;
-  padding: 8px 12px 9px;
+  border-radius: 12px;
+  padding: 6px 11px 8px;
   transition: border-color 0.25s;
 }
 
 .risk-label-row {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
+  gap: 6px;
+}
+
+.risk-factors-inline {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  justify-content: flex-end;
+  overflow: hidden;
 }
 
 .risk-label {
@@ -138,14 +146,15 @@ button {
 }
 
 .risk-pct {
-  font-size: 21px;
+  font-size: 18px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+  margin-left: auto;
 }
 
 .risk-bar-track {
   margin-top: 4px;
-  height: 9px;
+  height: 8px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
@@ -187,10 +196,11 @@ button {
 }
 
 .factor {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
   border-radius: 999px;
-  padding: 2.5px 8px;
+  padding: 2px 7px;
+  white-space: nowrap;
 }
 
 .factor.up {
@@ -1118,6 +1128,10 @@ button {
   align-self: center;
   font-size: 13px;
   padding: 8px 20px;
+}
+
+.exit-panel {
+  width: min(320px, 88vw);
 }
 
 /* ── 운명 분석서 ────────────────────────────────────── */

@@ -153,6 +153,15 @@ export const IcChevronDown = makeIcon(<path d="M6 9l6 6 6-6" />);
 
 export const IcChevronUp = makeIcon(<path d="M6 15l6-6 6 6" />);
 
+/** 나가기 (문 밖으로) */
+export const IcExit = makeIcon(
+  <>
+    <path d="M13 4H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6" />
+    <path d="M16 8l4 4-4 4" />
+    <path d="M20 12H10" />
+  </>,
+);
+
 /** 리롤 (주사위) */
 export const IcDice = makeIcon(
   <>
