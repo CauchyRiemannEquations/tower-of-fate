@@ -1,6 +1,16 @@
 import { useGameStore } from '../hooks/useGameStore';
 import { actions } from '../game/state/actions';
-import { IcFloor, IcLock, IcSoundOff, IcSoundOn, IcSpark, IcTrophy } from './icons';
+import { RELIC_SPECS } from '../game/systems/checkpoints';
+import {
+  IcFloor,
+  IcGem,
+  IcLock,
+  IcScroll,
+  IcSoundOff,
+  IcSoundOn,
+  IcSpark,
+  IcTrophy,
+} from './icons';
 
 function riskClass(pct: number): string {
   if (pct < 20) return 'safe';
@@ -68,6 +78,23 @@ export function HUD() {
           </div>
         )}
       </div>
+
+      {(s.contract || s.relics.length > 0) && (
+        <div className="hud-row hud-sub-row">
+          {s.contract && (
+            <span className="chip contract-chip" title={s.contract.desc}>
+              <IcScroll size={13} />
+              {s.contract.name} · {s.contract.progressText} · {s.contract.remaining}턴
+            </span>
+          )}
+          {s.relics.map((r) => (
+            <span key={r} className="chip relic-chip" title={RELIC_SPECS[r].desc}>
+              <IcGem size={12} />
+              {RELIC_SPECS[r].name}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

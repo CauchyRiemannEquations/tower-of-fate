@@ -4,6 +4,7 @@ import { useGameStore } from '../hooks/useGameStore';
 import { BLOCKS } from '../game/config/blocks';
 import type { BlockTypeId } from '../types';
 import { IcCopy, IcHome, IcRestart } from './icons';
+import { FateReport } from './FateReport';
 
 function favoriteBlock(counts: Record<BlockTypeId, number>): string {
   const ids = Object.keys(counts) as BlockTypeId[];
@@ -67,6 +68,8 @@ export function GameOverScreen() {
             <span className="stat-value">{favoriteBlock(s.stats.blockCounts)}</span>
           </div>
         </div>
+
+        <FateReport />
 
         <div className="go-buttons">
           <button className="btn btn-primary" onClick={actions.startGame}>

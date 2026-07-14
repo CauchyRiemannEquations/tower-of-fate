@@ -836,6 +836,407 @@ button {
   pointer-events: none;
 }
 
+/* ── 시스템 칩 행 (덱 · 리롤 · 예약) ─────────────────── */
+.sys-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 0 2px;
+}
+
+.sys-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(20, 14, 50, 0.85);
+  border: 1px solid rgba(160, 140, 255, 0.35);
+  border-radius: 999px;
+  padding: 6px 11px;
+  font-size: 12.5px;
+  color: #cdbfff;
+  font-family: inherit;
+}
+
+.sys-chip-action {
+  border-color: rgba(126, 255, 201, 0.5);
+  color: #7effc9;
+}
+
+.sys-chip-idle {
+  opacity: 0.65;
+}
+
+.sys-chip-reserved {
+  border-color: #ffe98a;
+  color: #ffe98a;
+  box-shadow: 0 0 10px rgba(255, 233, 138, 0.2);
+}
+
+.sys-chip-reserved.selected {
+  background: rgba(255, 233, 138, 0.18);
+}
+
+/* ── 덱 패널 ────────────────────────────────────────── */
+.deck-panel {
+  position: relative;
+}
+
+.deck-chip-row {
+  display: flex;
+  gap: 6px;
+}
+
+.deck-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 190px;
+  background: rgba(18, 12, 44, 0.97);
+  border: 1.5px solid rgba(160, 140, 255, 0.45);
+  border-radius: 14px;
+  padding: 12px 14px;
+  z-index: 18;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.deck-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deck-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+}
+
+.deck-row-name {
+  color: #cdbfff;
+}
+
+.deck-row-count {
+  margin-left: auto;
+  color: #f0ecff;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.dot-wood { background: linear-gradient(180deg, #c08a52, #7d4f28); }
+.dot-stone { background: linear-gradient(180deg, #9aa8b8, #57647a); }
+.dot-glass { background: linear-gradient(135deg, #8cf0eb, #3296be); }
+.dot-gold { background: linear-gradient(180deg, #ffe98a, #c98a12); }
+.dot-foundation { background: linear-gradient(180deg, #7e8fb8, #414c70); }
+
+.deck-discard {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(160, 140, 255, 0.2);
+  font-size: 11.5px;
+  color: #8d80bb;
+}
+
+.deck-upcoming {
+  margin-top: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+}
+
+.deck-upcoming-label {
+  color: #7effc9;
+}
+
+.deck-next {
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #12102c;
+  font-size: 11px;
+}
+
+/* ── 카드 예약 버튼 ─────────────────────────────────── */
+.card-wrap {
+  position: relative;
+  display: flex;
+}
+
+.card-wrap .card {
+  width: 100%;
+}
+
+.reserve-btn {
+  position: absolute;
+  top: -7px;
+  right: -4px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  background: #ffe98a;
+  color: #4a3204;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+
+.reserve-btn:active {
+  transform: scale(0.9);
+}
+
+/* ── HUD 서브 행 (계약 · 유물) ───────────────────────── */
+.hud-sub-row {
+  flex-wrap: wrap;
+}
+
+.contract-chip {
+  color: #ffd23c;
+  border-color: rgba(255, 210, 60, 0.45);
+  font-size: 12px;
+}
+
+.relic-chip {
+  color: #c8b7ff;
+  border-color: rgba(200, 183, 255, 0.4);
+  font-size: 11.5px;
+  padding: 4px 10px;
+}
+
+/* ── 선택 모달 (계약 · 체크포인트) ───────────────────── */
+.modal-overlay {
+  background: rgba(8, 5, 22, 0.78);
+  z-index: 30;
+}
+
+.modal-panel {
+  background: linear-gradient(165deg, rgba(48, 36, 96, 0.97), rgba(22, 15, 50, 0.99));
+  border: 1.5px solid rgba(160, 140, 255, 0.45);
+  border-radius: 22px;
+  padding: 20px 18px;
+  width: min(400px, 94vw);
+  max-height: 86vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.6);
+  animation: panel-pop 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.modal-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 21px;
+  color: #ffe98a;
+}
+
+.modal-sub {
+  text-align: center;
+  font-size: 13px;
+  color: #a79ad0;
+  margin-top: -4px;
+}
+
+.option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.option-card {
+  text-align: left;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(160, 140, 255, 0.3);
+  border-radius: 14px;
+  padding: 11px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: #f0ecff;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.option-card:hover,
+.option-card:focus-visible {
+  border-color: #ffe98a;
+}
+
+.option-card:active {
+  transform: scale(0.98);
+}
+
+.option-relic {
+  border-color: rgba(200, 183, 255, 0.45);
+}
+
+.option-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15.5px;
+  color: #ffe98a;
+}
+
+.option-kind {
+  font-style: normal;
+  font-size: 10.5px;
+  color: #12102c;
+  background: #cdbfff;
+  border-radius: 999px;
+  padding: 1.5px 8px;
+  margin-left: auto;
+}
+
+.option-desc {
+  font-size: 13px;
+  color: #d9d2f2;
+  line-height: 1.45;
+}
+
+.option-reward {
+  font-size: 12px;
+  color: #7effc9;
+}
+
+.option-tradeoff {
+  font-size: 12px;
+  color: #ff9aa5;
+}
+
+.btn-skip {
+  align-self: center;
+  font-size: 13px;
+  padding: 8px 20px;
+}
+
+/* ── 운명 분석서 ────────────────────────────────────── */
+.fate-report {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fr-toggle {
+  width: 100%;
+  justify-content: center;
+}
+
+.fr-body {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(160, 140, 255, 0.25);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+}
+
+.fr-line {
+  font-size: 13px;
+  line-height: 1.55;
+  color: #d9d2f2;
+}
+
+.fr-line b {
+  color: #ffe98a;
+}
+
+.fr-section-title {
+  font-size: 12px;
+  color: #7effc9;
+  margin-top: 2px;
+}
+
+.fr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+
+.fr-table th {
+  color: #8d80bb;
+  font-weight: 400;
+  text-align: right;
+  padding: 3px 4px;
+  border-bottom: 1px solid rgba(160, 140, 255, 0.2);
+}
+
+.fr-table td {
+  text-align: right;
+  padding: 3px 4px;
+  color: #d9d2f2;
+  font-variant-numeric: tabular-nums;
+}
+
+.fr-table th:first-child,
+.fr-table td:first-child {
+  text-align: left;
+}
+
+.fr-details summary {
+  font-size: 12.5px;
+  color: #cdbfff;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.fr-ev {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: #d9d2f2;
+  padding: 6px 0;
+}
+
+.fr-ev b {
+  color: #ffe98a;
+}
+
+.fr-note {
+  font-size: 11px;
+  color: #8d80bb;
+  line-height: 1.5;
+}
+
+/* 게임오버 패널이 분석서까지 담도록 스크롤 허용 */
+.gameover-screen .panel {
+  max-height: 88vh;
+  overflow-y: auto;
+}
+
+/* ── 모션 감소 설정 존중 ─────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .risk-panel.danger,
+  .new-best,
+  .menu-tower,
+  .tap-dot::after,
+  .tap-bounce,
+  .tap-slide {
+    animation: none !important;
+  }
+
+  .overlay,
+  .panel,
+  .modal-panel,
+  .toast {
+    animation-duration: 0.01s !important;
+  }
+}
+
 /* ── 작은 화면 보정 ─────────────────────────────────── */
 @media (max-height: 700px) {
   .card-desc { display: none; }

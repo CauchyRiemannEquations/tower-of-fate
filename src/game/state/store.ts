@@ -44,6 +44,20 @@ export function initialState(): GameState {
     gameOver: null,
     lastJudge: null,
     debug: { lastRoll: -1, lastEffective: 0, comOffset: 0 },
+    deck: {
+      drawCount: 0,
+      discardCount: 0,
+      remainingByType: { wood: 0, stone: 0, glass: 0, gold: 0, foundation: 0 },
+      upcoming: [],
+    },
+    reserve: { block: null, uses: 0 },
+    rerolls: 0,
+    contract: null,
+    contractOffers: null,
+    checkpointOffers: null,
+    paths: [],
+    relics: [],
+    runLog: [],
   };
 }
 

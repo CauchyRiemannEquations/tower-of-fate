@@ -4,7 +4,7 @@ import { BLOCKS } from '../config/blocks';
 import { computeRisk } from '../systems/risk';
 import { tower } from '../systems/tower';
 import { gameEvents, store } from '../state/store';
-import { actions } from '../state/actions';
+import { actions, getRiskMods } from '../state/actions';
 import { generateAllTextures, blockTextureKey } from '../objects/textures';
 import { EffectPool } from '../effects/particles';
 import { sfx, unlockAudio } from '../../utils/sound';
@@ -68,6 +68,7 @@ export class TowerScene extends Phaser.Scene {
       .setDepth(3);
 
     this.unsubs.push(gameEvents.on('spawn', (id: BlockTypeId) => this.spawnAiming(id)));
+    this.unsubs.push(gameEvents.on('despawn', () => this.despawnAiming()));
     this.unsubs.push(gameEvents.on('drop', () => this.doDrop()));
     this.unsubs.push(gameEvents.on('collapse', () => this.playCollapse()));
     this.unsubs.push(gameEvents.on('reset', () => this.resetScene()));
@@ -261,7 +262,7 @@ export class TowerScene extends Phaser.Scene {
 
       if (this.aimDirty) {
         this.aimDirty = false;
-        this.currentBreakdown = computeRisk(this.aimDef, this.aimX);
+        this.currentBreakdown = computeRisk(this.aimDef, this.aimX, getRiskMods());
         actions.setAimRisk(this.currentBreakdown);
         this.drawGuide(this.currentBreakdown);
       }
@@ -314,9 +315,37 @@ export class TowerScene extends Phaser.Scene {
 
   // ── 낙하와 착지 ──────────────────────────────────────
 
+  /** 예약 등으로 조준이 해제될 때 */
+  private despawnAiming() {
+    this.aimSprite?.destroy();
+    this.aimSprite = null;
+    this.aimDef = null;
+    this.currentBreakdown = null;
+    this.guide.clear();
+    this.drawIdleCom();
+  }
+
+  /** 기하학자의 눈: 조준 전에도 탑 무게중심을 표시 */
+  private drawIdleCom() {
+    if (!store.getState().relics.includes('geometer')) return;
+    if (tower.blocks.length === 0) return;
+    const g = this.guide;
+    const com = tower.comX();
+    const comRatio = Math.abs(com - (tower.blocks[0]?.x ?? 0)) / tower.baseHalfWidth();
+    const comColor = comRatio < 0.4 ? 0x35e0c9 : comRatio < 0.8 ? 0xff8c3a : 0xff4d5e;
+    const cx = D.baseX + com;
+    const cy = D.groundTop + 14;
+    g.fillStyle(comColor, 0.95);
+    g.fillTriangle(cx, cy - 8, cx + 7, cy, cx, cy + 8);
+    g.fillTriangle(cx, cy - 8, cx - 7, cy, cx, cy + 8);
+    g.lineStyle(1.5, comColor, 0.4);
+    g.lineBetween(cx, cy - 8, cx, D.groundTop - tower.totalHeight());
+  }
+
   private doDrop() {
     if (!this.aimSprite || !this.aimDef) return;
-    const breakdown = this.currentBreakdown ?? computeRisk(this.aimDef, this.aimX);
+    const breakdown =
+      this.currentBreakdown ?? computeRisk(this.aimDef, this.aimX, getRiskMods());
     this.guide.clear();
 
     const landingBottom = D.groundTop - tower.totalHeight();
@@ -455,6 +484,8 @@ export class TowerScene extends Phaser.Scene {
       this.splash('아슬아슬!', '#ff8c3a', false);
       this.crackFlash(worldX, worldY + 10);
     }
+
+    this.drawIdleCom();
   }
 
   private crackFlash(x: number, y: number) {

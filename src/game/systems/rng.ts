@@ -13,31 +13,34 @@ export interface FairnessState {
 }
 
 /**
- * 붕괴 판정. 표시 확률과 크게 어긋나지 않는 선에서
- * 초반 완충과 1회 저위험 보호 장치를 둔다.
+ * 붕괴 판정. riskPct는 computeRisk가 표시한 값 그대로이며
+ * 여기서 추가 보정 없이 동일한 확률로 판정한다.
+ * (초반 완충은 computeRisk의 "초반의 가호" 요인으로 이미 반영됨)
+ *
+ * 유일한 예외는 저위험 억울사 1회 보호로, 발동 시 붕괴가
+ * "아슬아슬 생존"으로 전환되며 니어미스 연출로 명확히 드러난다.
  */
 export function judgeCollapse(
   riskPct: number,
   floor: number,
   fairness: FairnessState,
+  rng: () => number = Math.random,
 ): JudgeOutcome {
-  let effective = riskPct / 100;
-  if (floor <= BALANCE.risk.earlyFloors) {
-    effective *= BALANCE.risk.earlyFactor;
-  }
-
-  const roll = Math.random();
+  const effective = riskPct / 100;
+  const roll = rng();
 
   if (roll < effective) {
-    // 저위험 억울사 방지: 게임당 1회, 낮은 위험에서의 붕괴는 아슬아슬 생존으로 전환
-    if (!fairness.shieldUsed && riskPct < BALANCE.risk.shieldBelow && floor > BALANCE.risk.earlyFloors) {
+    if (
+      !fairness.shieldUsed &&
+      riskPct < BALANCE.risk.shieldBelow &&
+      floor > BALANCE.risk.earlyFloors
+    ) {
       fairness.shieldUsed = true;
       return { collapsed: false, nearMiss: true, roll, effective };
     }
     return { collapsed: true, nearMiss: false, roll, effective };
   }
 
-  // 간발의 차로 생존 → 연출용 니어미스
   const nearMiss = riskPct >= 30 && roll < effective + 0.05;
   return { collapsed: false, nearMiss, roll, effective };
 }

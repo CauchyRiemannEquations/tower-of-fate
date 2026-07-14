@@ -115,3 +115,51 @@ export const IcFlag = makeIcon(
     <path d="M5.5 4h11l-2.5 4 2.5 4h-11" />
   </>,
 );
+
+/** 예약 (북마크) */
+export const IcBookmark = makeIcon(
+  <path d="M7 3h10v18l-5-4-5 4V3z" />,
+);
+
+/** 덱 (카드 더미) */
+export const IcDeck = makeIcon(
+  <>
+    <rect x="4" y="7" width="12" height="14" rx="2" />
+    <path d="M8 4h11v13" />
+  </>,
+);
+
+/** 계약 (두루마리) */
+export const IcScroll = makeIcon(
+  <>
+    <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
+    <path d="M8 9h8" />
+    <path d="M8 13h8" />
+    <path d="M8 17h5" />
+  </>,
+);
+
+/** 유물 (보석) */
+export const IcGem = makeIcon(
+  <>
+    <path d="M6 3h12l4 6-10 12L2 9l4-6z" />
+    <path d="M2 9h20" />
+    <path d="M12 21L8 9l4-6 4 6-4 12" />
+  </>,
+);
+
+/** 펼치기 화살표 */
+export const IcChevronDown = makeIcon(<path d="M6 9l6 6 6-6" />);
+
+export const IcChevronUp = makeIcon(<path d="M6 15l6-6 6 6" />);
+
+/** 리롤 (주사위) */
+export const IcDice = makeIcon(
+  <>
+    <rect x="4" y="4" width="16" height="16" rx="3" />
+    <circle cx="9" cy="9" r="1.2" fill="currentColor" />
+    <circle cx="15" cy="15" r="1.2" fill="currentColor" />
+    <circle cx="15" cy="9" r="1.2" fill="currentColor" />
+    <circle cx="9" cy="15" r="1.2" fill="currentColor" />
+  </>,
+);
