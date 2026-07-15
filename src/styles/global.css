@@ -12,8 +12,9 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   background: #0c0a24;
-  font-family: 'Jua', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui,
-    sans-serif;
+  /* 본문: 얇고 또렷한 고운돋움 / 큰 숫자·버튼: 둥근 주아체 */
+  font-family: 'Gowun Dodum', 'Apple SD Gothic Neo', 'Malgun Gothic',
+    system-ui, sans-serif;
   color: #f0ecff;
   user-select: none;
   -webkit-user-select: none;
@@ -35,10 +36,6 @@ body {
   display: block;
 }
 
-/* 게임 중에는 HUD와 밤하늘을 분리해 배경이 위험 패널 아래에서 시작한다. */
-.game-root-in-run canvas {
-  clip-path: inset(126px 0 0);
-}
 
 /* ── UI 레이어 ───────────────────────────────────────── */
 .ui-layer {
@@ -67,6 +64,20 @@ button {
 .ic {
   flex-shrink: 0;
   display: inline-block;
+}
+
+/* 큰 표시 요소만 둥근 주아체 */
+.btn,
+.risk-pct,
+.card-name,
+.card-score,
+.final-score,
+.go-title,
+.modal-title,
+.stat-value,
+.tagline {
+  font-family: 'Jua', 'Gowun Dodum', sans-serif;
+  font-weight: 400;
 }
 
 .btn-main {

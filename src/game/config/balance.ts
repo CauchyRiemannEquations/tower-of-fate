@@ -26,12 +26,6 @@ export const BALANCE = {
     fallbackCard: 'wood',
   },
 
-  /** 예약 슬롯 */
-  reserve: {
-    startUses: 1,
-    maxUses: 2,
-  },
-
   /** 예언 계약 */
   contracts: {
     firstFloor: 3,

@@ -49,6 +49,8 @@ export class TowerScene extends Phaser.Scene {
   private dragTime = 0;
 
   private blockSprites: Phaser.GameObjects.Image[] = [];
+  /** 블록 위에 얹힌 균열 오버레이 (손상 표현) */
+  private crackOverlays: Phaser.GameObjects.Image[] = [];
   private unsubs: (() => void)[] = [];
 
   constructor() {
@@ -234,11 +236,11 @@ export class TowerScene extends Phaser.Scene {
   // ── 조준 ─────────────────────────────────────────────
 
   /**
-   * 조준 블록의 기준 y — HUD 바로 아래의 화면 상단 배경에 고정한다.
+   * 조준 블록의 기준 y — 화면 상단이되 HUD(DOM) 바로 아래에 고정한다.
    * 카메라가 탑을 따라 움직여도 같은 화면 높이를 유지한다.
    */
   private aimBaseY(): number {
-    return this.cameras.main.scrollY + 180;
+    return this.cameras.main.scrollY + 235;
   }
 
   private spawnAiming(id: BlockTypeId) {
@@ -495,9 +497,53 @@ export class TowerScene extends Phaser.Scene {
       sfx.nearMiss();
       this.splash('아슬아슬!', '#ff8c3a', false);
       this.crackFlash(worldX, worldY + 10);
+      this.addCrack(tower.blocks.length - 1, true);
+      // 아래 블록에도 금이 번진다
+      if (tower.blocks.length >= 2 && Math.random() < 0.7) {
+        this.time.delayedCall(120, () => this.addCrack(tower.blocks.length - 2, false));
+      }
+    } else if (j.risk >= 55) {
+      // 고위험 착지는 흔적을 남긴다
+      sfx.crack();
+      this.addCrack(tower.blocks.length - 1, false);
     }
 
     this.drawIdleCom();
+  }
+
+  /**
+   * 블록에 실제로 금이 가는 손상 연출 — 오버레이가 남아
+   * 탑이 아슬아슬했던 흔적이 쌓인다.
+   */
+  private addCrack(blockIndex: number, strong: boolean) {
+    const sprite = this.blockSprites[blockIndex];
+    const def = tower.blocks[blockIndex]?.def;
+    if (!sprite || !def || !sprite.visible) return;
+
+    const key = Math.random() < 0.5 ? 'crack-a' : 'crack-b';
+    const crack = this.add
+      .image(sprite.x, sprite.y - def.height / 2, key)
+      .setDepth(26)
+      .setAlpha(0)
+      .setAngle((Math.random() - 0.5) * 10);
+    crack.setDisplaySize(def.width * 0.94, def.height * 0.92);
+    this.towerC.add(crack);
+    this.crackOverlays.push(crack);
+
+    this.tweens.add({
+      targets: crack,
+      alpha: strong ? 0.95 : 0.6,
+      duration: 140,
+      ease: 'Quad.easeOut',
+    });
+    // 금 가는 순간의 번쩍임
+    if (strong) {
+      const mat = new Phaser.GameObjects.Components.TransformMatrix();
+      this.towerC.getWorldTransformMatrix(mat);
+      const p = mat.transformPoint(sprite.x, sprite.y - def.height / 2);
+      this.fx.sparkBurst(p.x, p.y, 6, 0xffffff);
+      this.cameras.main.shake(90, 0.003);
+    }
   }
 
   private crackFlash(x: number, y: number) {
@@ -592,6 +638,19 @@ export class TowerScene extends Phaser.Scene {
   private playCollapse() {
     this.collapsing = true;
     this.guide.clear();
+
+    // 무너지기 직전, 모든 블록에 금이 간다
+    this.blockSprites.forEach((_, i) => {
+      this.time.delayedCall(i * 40, () => this.addCrack(i, false));
+    });
+    sfx.crack();
+
+    // 기존 균열 오버레이는 붕괴와 함께 흩어진다
+    this.time.delayedCall(500, () => {
+      this.crackOverlays.forEach((c) => {
+        this.tweens.add({ targets: c, alpha: 0, duration: 500 });
+      });
+    });
 
     const lost = store.getState().tower;
     const comOffset = tower.comX() - (tower.blocks[0]?.x ?? 0);
@@ -712,6 +771,8 @@ export class TowerScene extends Phaser.Scene {
 
     this.blockSprites.forEach((s) => s.destroy());
     this.blockSprites = [];
+    this.crackOverlays.forEach((c) => c.destroy());
+    this.crackOverlays = [];
     this.towerC.removeAll(true);
     this.towerC.angle = 0;
     this.baseTilt = 0;

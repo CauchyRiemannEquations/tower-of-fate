@@ -50,13 +50,12 @@ import { sfx } from '../../utils/sound';
 let deck: DeckState = { drawPile: [], discardPile: [] };
 let effects: RunEffects = initialEffects();
 let activeContract: ActiveContract | null = null;
-let reserved: BlockTypeId | null = null;
-let reserveUses = 0;
 let rerolls = 0;
-let selectedFromReserve = false;
 let insuranceUsed = false;
 let fairness: FairnessState = { shieldUsed: false };
 let toastId = 0;
+/** 메뉴의 "플레이 방법"으로 시작된 판인지 — 튜토리얼 종료 시 메인 복귀 */
+let tutorialFromMenu = false;
 
 function showToast(text: string) {
   store.setState({ toast: { id: ++toastId, text } });
@@ -76,18 +75,17 @@ function saveBest(score: number): boolean {
   return false;
 }
 
-/** 예언자의 길/렌즈에 따른 덱 미리보기 장수 */
+/** 예언자의 길/렌즈 보유 시 다음 카드 1장을 미리 보여준다 */
 function peekCount(): number {
-  const prophet = effects.paths.includes('prophet') ? 3 : 0;
-  const lens = effects.relics.includes('lens') ? 1 : 0;
-  return Math.max(prophet, lens);
+  return effects.paths.includes('prophet') || effects.relics.includes('lens')
+    ? 1
+    : 0;
 }
 
 /** 런타임 상태를 스토어 뷰로 동기화 */
 function syncSystems() {
   store.setState({
     deck: deckView(deck, peekCount()),
-    reserve: { block: reserved, uses: reserveUses },
     rerolls,
     contract:
       activeContract && activeContract.status === 'active'
@@ -103,14 +101,13 @@ export function getRiskMods(): RiskMods {
   return buildRiskMods(effects);
 }
 
-/** 계약 실행 가능성 판단용: 덱·버림·예약·선택지에 존재하는 블록 종류 수 */
+/** 계약 실행 가능성 판단용: 덱·버림·선택지에 존재하는 블록 종류 수 */
 function availableTypeCount(): number {
   const types = new Set<BlockTypeId>([
     ...deck.drawPile,
     ...deck.discardPile,
     ...store.getState().offers,
   ]);
-  if (reserved) types.add(reserved);
   return types.size;
 }
 
@@ -136,8 +133,8 @@ function applyContractReward(id: ContractId) {
       showToast('계약 성공! 고위험 배율 +0.3 (5회)');
       break;
     case 'materials':
-      reserveUses = Math.min(BALANCE.reserve.maxUses, reserveUses + 1);
-      showToast('계약 성공! 예약 사용권 +1');
+      rerolls += 1;
+      showToast('계약 성공! 리롤 +1');
       break;
     case 'engineer':
       effects.buffHighValueCut = true;
@@ -161,10 +158,7 @@ export const actions = {
     deck = buildInitialDeck();
     effects = initialEffects();
     activeContract = null;
-    reserved = null;
-    reserveUses = BALANCE.reserve.startUses;
     rerolls = 0;
-    selectedFromReserve = false;
     insuranceUsed = false;
 
     const prev = store.getState();
@@ -183,6 +177,7 @@ export const actions = {
         guaranteeSafe: BALANCE.deck.safeFirstHand,
       }),
       tutorialStep,
+      tutorialReplay: tutorialFromMenu,
     });
     syncSystems();
     gameEvents.emit('reset');
@@ -190,6 +185,7 @@ export const actions = {
 
   toMenu() {
     tower.reset();
+    tutorialFromMenu = false;
     store.setState({
       ...initialState(),
       best: store.getState().best,
@@ -198,12 +194,14 @@ export const actions = {
     gameEvents.emit('reset');
   },
 
+  /** 메뉴의 "플레이 방법" — 튜토리얼을 다시 보여주고 끝나면 메인으로 */
   replayTutorial() {
     try {
       localStorage.removeItem(LS_KEYS.tutorial);
     } catch {
       /* noop */
     }
+    tutorialFromMenu = true;
     actions.startGame();
   },
 
@@ -211,7 +209,6 @@ export const actions = {
     const s = store.getState();
     if (s.phase !== 'choosing' && s.phase !== 'aiming') return;
     if (!s.offers.includes(id)) return;
-    selectedFromReserve = false;
     sfx.select();
     store.setState({
       phase: 'aiming',
@@ -219,54 +216,6 @@ export const actions = {
       tutorialStep: s.tutorialStep === 0 ? 1 : s.tutorialStep,
     });
     gameEvents.emit('spawn', id);
-  },
-
-  /** 예약 슬롯의 블록을 이번 턴에 사용 */
-  selectReserved() {
-    const s = store.getState();
-    if (s.phase !== 'choosing' && s.phase !== 'aiming') return;
-    if (!reserved) return;
-    selectedFromReserve = true;
-    sfx.select();
-    store.setState({
-      phase: 'aiming',
-      selected: reserved,
-      tutorialStep: s.tutorialStep === 0 ? 1 : s.tutorialStep,
-    });
-    gameEvents.emit('spawn', reserved);
-  },
-
-  /**
-   * 선택지의 블록 하나를 예약. 슬롯이 차 있으면 기존 예약 블록이
-   * 해당 카드 자리로 돌아온다(교환). 사용권은 체크포인트마다 회복.
-   */
-  reserveBlock(index: number) {
-    const s = store.getState();
-    if (s.phase !== 'choosing' && s.phase !== 'aiming') return;
-    if (reserveUses <= 0) return;
-    const id = s.offers[index];
-    if (!id) return;
-
-    const offers = [...s.offers];
-    if (reserved) {
-      // 교환
-      offers[index] = reserved;
-      reserved = id;
-    } else {
-      offers.splice(index, 1);
-      reserved = id;
-    }
-    reserveUses -= 1;
-    sfx.select();
-
-    // 예약한 블록을 조준 중이었다면 조준 해제
-    let patch: Partial<ReturnType<typeof store.getState>> = { offers };
-    if (s.phase === 'aiming' && s.selected === id && !offers.includes(id)) {
-      patch = { ...patch, phase: 'choosing', selected: null, aimRisk: null };
-      gameEvents.emit('despawn');
-    }
-    store.setState(patch);
-    syncSystems();
   },
 
   /** 리롤 — 현재 선택지를 버리고 새로  3장 */
@@ -315,16 +264,10 @@ export const actions = {
     const floor = tower.blocks.length;
 
     // ── 덱 처리: 배치 카드는 탑이 되고, 남은 선택지는 버림 더미로 ──
-    if (selectedFromReserve) {
-      reserved = null;
-      discardCards(deck, s.offers);
-    } else {
-      const rest = [...s.offers];
-      const idx = rest.indexOf(id);
-      if (idx >= 0) rest.splice(idx, 1);
-      discardCards(deck, rest);
-    }
-    selectedFromReserve = false;
+    const rest = [...s.offers];
+    const restIdx = rest.indexOf(id);
+    if (restIdx >= 0) rest.splice(restIdx, 1);
+    discardCards(deck, rest);
 
     // ── 붕괴 판정 (표시 확률 그대로 사용) ──
     const outcome = judgeCollapse(breakdown.total, floor, fairness);
@@ -425,7 +368,6 @@ export const actions = {
       const banked = Math.round(towerScore * frac);
       towerScore -= banked;
       vault += banked;
-      reserveUses = Math.max(reserveUses, BALANCE.reserve.startUses);
       showToast(`${floor}층 체크포인트! ${banked}점 자동 저장`);
       sfx.checkpoint();
     }
@@ -594,7 +536,13 @@ export const actions = {
       } catch {
         /* noop */
       }
-      actions.toMenu();
+      // 메뉴의 "플레이 방법"으로 본 경우에만 메인으로 복귀,
+      // 첫 게임 중의 튜토리얼이면 판을 계속 진행한다
+      if (s.tutorialReplay) {
+        actions.toMenu();
+        return;
+      }
+      store.setState({ tutorialStep: -1 });
     }
   },
 

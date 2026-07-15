@@ -6,6 +6,7 @@ import './styles/global.css';
 if (document.fonts?.load) {
   void document.fonts.load('20px Jua');
   void document.fonts.load('20px "Black Han Sans"');
+  void document.fonts.load('20px "Gowun Dodum"');
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

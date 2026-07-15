@@ -64,7 +64,7 @@ export const CONTRACT_SPECS: Record<ContractId, ContractSpec> = {
     id: 'materials',
     name: '세 재료의 계약',
     desc: '연속 3층을 서로 다른 종류의 블록으로 쌓으세요.',
-    reward: '예약 사용권 +1',
+    reward: '리롤 1회 획득',
     target: 3,
   },
   engineer: {

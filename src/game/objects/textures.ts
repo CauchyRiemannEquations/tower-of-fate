@@ -549,6 +549,52 @@ export function generateAllTextures(scene: Phaser.Scene) {
     }
   }
 
+  // 균열 오버레이 — 손상된 블록 위에 얹는 반투명 금
+  for (const [key, seed] of [
+    ['crack-a', 3],
+    ['crack-b', 7],
+  ] as const) {
+    const w = 160 * S;
+    const h = 60 * S;
+    const ctx = canvasTex(scene, key, w, h);
+    if (ctx) {
+      let r = seed;
+      const rand = () => {
+        // 간단한 시드 난수 — 텍스처가 항상 같은 모양이 되도록
+        r = (r * 16807) % 2147483647;
+        return r / 2147483647;
+      };
+      const branch = (x: number, y: number, angle: number, len: number, width: number) => {
+        if (len < 8 * S || width < 0.7) return;
+        const nx = x + Math.cos(angle) * len;
+        const ny = y + Math.sin(angle) * len;
+        // 어두운 균열 본체 + 밝은 가장자리
+        ctx.strokeStyle = 'rgba(15,8,6,0.85)';
+        ctx.lineWidth = width * S;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(nx, ny);
+        ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,245,230,0.45)';
+        ctx.lineWidth = width * S * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(x + 1.5 * S, y + 1.5 * S);
+        ctx.lineTo(nx + 1.5 * S, ny + 1.5 * S);
+        ctx.stroke();
+        // 가지치기
+        branch(nx, ny, angle + (rand() - 0.5) * 1.2, len * (0.55 + rand() * 0.3), width * 0.7);
+        if (rand() < 0.7) {
+          branch(nx, ny, angle + (rand() > 0.5 ? 0.9 : -0.9), len * 0.5, width * 0.55);
+        }
+      };
+      branch(w * (0.25 + rand() * 0.2), h * 0.05, Math.PI * 0.45, h * 0.42, 4.6);
+      branch(w * (0.6 + rand() * 0.2), h * 0.98, -Math.PI * 0.55, h * 0.38, 3.8);
+      branch(w * (0.42 + rand() * 0.1), h * 0.5, rand() > 0.5 ? 0.2 : Math.PI - 0.2, w * 0.16, 3);
+      refresh(scene, key);
+    }
+  }
+
   // 파티클용 도형 텍스처 (Graphics로 충분)
   if (!scene.textures.exists('p-dot')) {
     const g = scene.make.graphics({ x: 0, y: 0 }, false);

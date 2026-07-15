@@ -53,14 +53,6 @@ export interface DeckView {
   upcoming: BlockTypeId[];
 }
 
-// ── 예약 슬롯 ───────────────────────────────────────
-
-export interface ReserveView {
-  block: BlockTypeId | null;
-  /** 남은 예약 사용권 (체크포인트마다 회복) */
-  uses: number;
-}
-
 // ── 예언 계약 ───────────────────────────────────────
 
 export type ContractId =
@@ -178,13 +170,14 @@ export interface GameState {
   soundOn: boolean;
   /** -1: 꺼짐, 0~2: 진행 중 */
   tutorialStep: number;
+  /** 메뉴의 "플레이 방법"으로 진입한 튜토리얼인지 (완료 시 메인 복귀) */
+  tutorialReplay: boolean;
   toast: { id: number; text: string } | null;
   gameOver: GameOverInfo | null;
   lastJudge: JudgeResult | null;
   debug: DebugInfo;
   // ── 확장 시스템 ──
   deck: DeckView;
-  reserve: ReserveView;
   /** 남은 리롤 횟수 (모래시계/예언자의 길) */
   rerolls: number;
   contract: ContractView | null;

@@ -40,6 +40,7 @@ export function initialState(): GameState {
     },
     soundOn: loadSound(),
     tutorialStep: -1,
+    tutorialReplay: false,
     toast: null,
     gameOver: null,
     lastJudge: null,
@@ -50,7 +51,6 @@ export function initialState(): GameState {
       remainingByType: { wood: 0, stone: 0, glass: 0, gold: 0, foundation: 0 },
       upcoming: [],
     },
-    reserve: { block: null, uses: 0 },
     rerolls: 0,
     contract: null,
     contractOffers: null,
@@ -83,6 +83,11 @@ class Store {
 }
 
 export const store = new Store();
+
+// ?debug 모드에서 콘솔 디버깅용으로 노출
+if (typeof window !== 'undefined' && window.location.search.includes('debug')) {
+  (window as unknown as { __store: Store }).__store = store;
+}
 
 /** 소형 이벤트 버스 — 스토어/액션 → Phaser 씬 명령 전달용 */
 type Handler = (...args: any[]) => void;

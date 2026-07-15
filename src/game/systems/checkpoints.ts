@@ -65,10 +65,10 @@ export const PATH_SPECS: Record<PathId, PathSpec> = {
   prophet: {
     id: 'prophet',
     name: '예언자의 길',
-    desc: '덱의 다음 3장 미리보기, 리롤 1회 획득',
+    desc: '다음에 나올 카드 미리보기, 리롤 2회 획득',
     deckAdds: [],
-    rerollGain: 1,
-    peekGain: 3,
+    rerollGain: 2,
+    peekGain: 1,
   },
 };
 
@@ -108,7 +108,7 @@ export const RELIC_SPECS: Record<RelicId, RelicSpec> = {
   lens: {
     id: 'lens',
     name: '예언자의 렌즈',
-    desc: '덱의 다음 카드 1장을 항상 미리 표시',
+    desc: '다음에 나올 카드를 항상 미리 표시',
     rerollGain: 0,
   },
   hourglass: {

@@ -2,9 +2,9 @@ import { useEffect, useRef } from 'react';
 import { initGame } from './game/PhaserGame';
 import { useGameStore } from './hooks/useGameStore';
 import { HUD } from './components/HUD';
-import { BlockCards, ReserveChip } from './components/BlockCards';
+import { BlockCards } from './components/BlockCards';
 import { Controls } from './components/Controls';
-import { DeckPanel } from './components/DeckPanel';
+import { TurnAids } from './components/TurnAids';
 import { ContractModal } from './components/ContractModal';
 import { CheckpointModal } from './components/CheckpointModal';
 import { MenuScreen } from './components/MenuScreen';
@@ -38,10 +38,7 @@ export default function App() {
         {inRun && <HUD />}
         {inRun && (
           <div className="bottom-panel">
-            <div className="sys-row">
-              <DeckPanel />
-              <ReserveChip />
-            </div>
+            <TurnAids />
             <BlockCards />
             <Controls />
           </div>
