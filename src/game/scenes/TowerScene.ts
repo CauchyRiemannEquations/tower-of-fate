@@ -11,6 +11,8 @@ import { sfx, unlockAudio } from '../../utils/sound';
 import type { BlockDef, BlockTypeId, JudgeResult, RiskBreakdown } from '../../types';
 
 const D = BALANCE.design;
+/** CSS의 게임 배경 시작선과 맞춘 화면 기준 y. */
+const PLAYFIELD_SCREEN_TOP = 126;
 
 /** 인게임 텍스트(PERFECT!, 점수 플로팅 등)에 쓰는 폰트 스택 */
 const GAME_FONT = '"Jua", "Black Han Sans", "Trebuchet MS", system-ui, sans-serif';
@@ -91,7 +93,11 @@ export class TowerScene extends Phaser.Scene {
     this.add.image(0, 0, 'sky').setOrigin(0).setScrollFactor(0).setDepth(0);
 
     // 달(거대 행성)
-    this.add.image(392, 128, 'moon').setScrollFactor(0.06).setDepth(1).setScale(0.9);
+    this.add
+      .image(392, PLAYFIELD_SCREEN_TOP + 72, 'moon')
+      .setScrollFactor(0.06)
+      .setDepth(1)
+      .setScale(0.9);
 
     // 별 — 위쪽으로 넓게 뿌려 패럴랙스로 흘러가게 한다
     for (let i = 0; i < 46; i++) {

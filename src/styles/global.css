@@ -35,6 +35,11 @@ body {
   display: block;
 }
 
+/* 게임 중에는 HUD와 밤하늘을 분리해 배경이 위험 패널 아래에서 시작한다. */
+.game-root-in-run canvas {
+  clip-path: inset(126px 0 0);
+}
+
 /* ── UI 레이어 ───────────────────────────────────────── */
 .ui-layer {
   position: absolute;

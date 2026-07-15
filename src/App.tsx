@@ -33,7 +33,7 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="game-root" ref={gameRef} />
+      <div className={`game-root ${inRun ? 'game-root-in-run' : ''}`} ref={gameRef} />
       <div className="ui-layer">
         {inRun && <HUD />}
         {inRun && (
