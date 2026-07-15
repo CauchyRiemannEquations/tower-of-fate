@@ -51,7 +51,7 @@ export function TutorialOverlay() {
           <br />
           언제든 <b>점수 확정</b>으로 안전하게 탈출!
           <button className="btn btn-primary btn-sm" onClick={actions.dismissTutorialStep}>
-            알겠어요!
+            메인으로 돌아가기
           </button>
         </div>
       </div>

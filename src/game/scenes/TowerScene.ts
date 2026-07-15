@@ -11,6 +11,8 @@ import { sfx, unlockAudio } from '../../utils/sound';
 import type { BlockDef, BlockTypeId, JudgeResult, RiskBreakdown } from '../../types';
 
 const D = BALANCE.design;
+/** CSS의 게임 배경 시작선과 맞춘 화면 기준 y. */
+const PLAYFIELD_SCREEN_TOP = 126;
 
 /** 인게임 텍스트(PERFECT!, 점수 플로팅 등)에 쓰는 폰트 스택 */
 const GAME_FONT = '"Jua", "Black Han Sans", "Trebuchet MS", system-ui, sans-serif';
@@ -91,7 +93,11 @@ export class TowerScene extends Phaser.Scene {
     this.add.image(0, 0, 'sky').setOrigin(0).setScrollFactor(0).setDepth(0);
 
     // 달(거대 행성)
-    this.add.image(392, 128, 'moon').setScrollFactor(0.06).setDepth(1).setScale(0.9);
+    this.add
+      .image(392, PLAYFIELD_SCREEN_TOP + 72, 'moon')
+      .setScrollFactor(0.06)
+      .setDepth(1)
+      .setScale(0.9);
 
     // 별 — 위쪽으로 넓게 뿌려 패럴랙스로 흘러가게 한다
     for (let i = 0; i < 46; i++) {
@@ -228,13 +234,11 @@ export class TowerScene extends Phaser.Scene {
   // ── 조준 ─────────────────────────────────────────────
 
   /**
-   * 조준 블록의 기준 y — 탑 꼭대기 위 일정 거리에 띄우되,
-   * 상단 HUD(DOM)에 가려지지 않는 높이 아래로 내려온다.
+   * 조준 블록의 기준 y — HUD 바로 아래의 화면 상단 배경에 고정한다.
+   * 카메라가 탑을 따라 움직여도 같은 화면 높이를 유지한다.
    */
   private aimBaseY(): number {
-    const topY = D.groundTop - tower.totalHeight();
-    const belowHud = this.cameras.main.scrollY + 255;
-    return Math.max(belowHud, topY - 150);
+    return this.cameras.main.scrollY + 180;
   }
 
   private spawnAiming(id: BlockTypeId) {

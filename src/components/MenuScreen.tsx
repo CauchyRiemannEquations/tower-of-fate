@@ -42,7 +42,7 @@ export function MenuScreen() {
         <button className="btn btn-ghost" onClick={actions.replayTutorial}>
           <span className="btn-main">
             <IcBook />
-            튜토리얼 다시 보기
+            플레이 방법
           </span>
         </button>
         <button className="btn btn-ghost" onClick={actions.toggleSound}>

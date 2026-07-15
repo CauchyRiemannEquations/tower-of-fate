@@ -594,7 +594,7 @@ export const actions = {
       } catch {
         /* noop */
       }
-      store.setState({ tutorialStep: -1 });
+      actions.toMenu();
     }
   },
 
