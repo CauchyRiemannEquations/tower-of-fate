@@ -228,13 +228,11 @@ export class TowerScene extends Phaser.Scene {
   // ── 조준 ─────────────────────────────────────────────
 
   /**
-   * 조준 블록의 기준 y — 탑 꼭대기 위 일정 거리에 띄우되,
-   * 상단 HUD(DOM)에 가려지지 않는 높이 아래로 내려온다.
+   * 조준 블록의 기준 y — HUD 바로 아래의 화면 상단 배경에 고정한다.
+   * 카메라가 탑을 따라 움직여도 같은 화면 높이를 유지한다.
    */
   private aimBaseY(): number {
-    const topY = D.groundTop - tower.totalHeight();
-    const belowHud = this.cameras.main.scrollY + 255;
-    return Math.max(belowHud, topY - 150);
+    return this.cameras.main.scrollY + 180;
   }
 
   private spawnAiming(id: BlockTypeId) {
