@@ -89,4 +89,54 @@ src/
 덕분에 폰·태블릿·데스크톱 어디서든 밤하늘 배경이 화면을 꽉 채우고,
 첫 블록을 받치는 석재 바닥도 화면 전체 폭으로 이어진다.
 
-기술 스택: Vite · React 18 · TypeScript · Phaser 3 · Web Audio API (백엔드 없음)
+## 온라인 랭킹 (Firebase) 설정
+
+랭킹 UI는 이미 들어 있고, Firebase 설정만 넣으면 즉시 활성화된다.
+설정 전에는 랭킹 화면에 안내 문구만 표시되고 게임은 정상 동작한다.
+
+1. [Firebase 콘솔](https://console.firebase.google.com)에서 프로젝트 생성
+2. **빌드 → Firestore Database → 데이터베이스 만들기** (프로덕션 모드 권장)
+3. 프로젝트 설정(톱니바퀴) → 일반 → **내 앱**에서 웹 앱(`</>`) 추가
+4. 프로젝트 루트의 `.env.example`을 복사해 `.env.local` 파일을 만들기
+5. "SDK 설정 및 구성"에서 **[구성]** 을 선택한 뒤 표시되는 값을 `.env.local`의
+   각 항목에 넣기 (`VITE_FIREBASE_API_KEY=표시된 apiKey` 형식)
+6. 개발 서버가 실행 중이었다면 껐다가 `npm run dev`로 다시 시작하기
+7. Firestore **규칙** 탭에 아래 예시를 붙여넣어 쓰기 검증을 걸어두기:
+
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /scores/{doc} {
+      allow get: if true;
+      allow list: if request.query.limit != null && request.query.limit <= 10;
+      allow create: if
+        request.resource.data.keys().hasOnly(['name','score','floor','maxRisk','createdAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1
+        && request.resource.data.name.size() <= 12
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score < 1000000
+        && request.resource.data.floor is int
+        && request.resource.data.floor >= 0
+        && request.resource.data.floor < 1000
+        && request.resource.data.maxRisk is int
+        && request.resource.data.maxRisk >= 0
+        && request.resource.data.maxRisk <= 100
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+  }
+}
+```
+
+- 데이터는 `scores` 컬렉션에 저장된다 (첫 등록 시 자동 생성):
+  `{ name, score, floor, maxRisk, createdAt }`
+- 조회는 점수 내림차순 상위 10개이며, 같은 브라우저에서는 10분 동안 캐시해
+  랭킹 화면을 반복해서 열어도 추가 읽기가 발생하지 않는다. 점수 등록 화면은 등록 전
+  랭킹을 읽지 않고, 등록이 끝난 뒤에만 최신 목록을 한 번 가져온다.
+- Firebase 콘솔의 **Firestore → 사용량**에서 실제 읽기/쓰기 추이를 확인할 수 있다.
+- Firebase SDK는 동적 import라 설정 전에는 로드조차 되지 않는다.
+
+기술 스택: Vite · React 18 · TypeScript · Phaser 3 · Web Audio API · Firebase(선택)
