@@ -1,11 +1,11 @@
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? '',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? '',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? '',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET ?? '',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? '',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID ?? '',
-  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? '',
+  apiKey: "AIzaSyBvTBuX_pBCCbvIHbPYgn9mzLPQWDaluY0",
+  authDomain: "toweroffate.firebaseapp.com",
+  projectId: "toweroffate",
+  storageBucket: "toweroffate.firebasestorage.app",
+  messagingSenderId: "145262737875",
+  appId: "1:145262737875:web:e4e3dcadda9334ecf3d726",
+  measurementId: "G-FRKFMJMVZE"
 };
 
 /** 설정이 채워졌는지 — 랭킹 UI가 이 값으로 활성/안내 상태를 결정한다 */
