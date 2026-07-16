@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import { actions } from '../game/state/actions';
 import { useGameStore } from '../hooks/useGameStore';
 import { unlockAudio } from '../utils/sound';
+import { RankModal } from './RankModal';
 import { IcBook, IcPlay, IcSoundOff, IcSoundOn, IcTrophy } from './icons';
 
 export function MenuScreen() {
   const s = useGameStore();
+  const [showRank, setShowRank] = useState(false);
 
   return (
     <div className="overlay menu-screen">
@@ -39,6 +42,12 @@ export function MenuScreen() {
         </span>
       </button>
       <div className="menu-sub-actions">
+        <button className="btn btn-rank" onClick={() => setShowRank(true)}>
+          <span className="btn-main">
+            <IcTrophy />
+            랭킹
+          </span>
+        </button>
         <button className="btn btn-ghost" onClick={actions.replayTutorial}>
           <span className="btn-main">
             <IcBook />
@@ -52,6 +61,7 @@ export function MenuScreen() {
           </span>
         </button>
       </div>
+      {showRank && <RankModal onClose={() => setShowRank(false)} />}
     </div>
   );
 }

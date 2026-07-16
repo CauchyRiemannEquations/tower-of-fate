@@ -147,4 +147,5 @@ export const LS_KEYS = {
   tutorial: 'towerOfFate.tutorialDone',
   sound: 'towerOfFate.sound',
   analytics: 'towerOfFate.analytics',
+  nickname: 'towerOfFate.nickname',
 } as const;

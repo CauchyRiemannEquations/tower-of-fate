@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { actions } from '../game/state/actions';
 import { useGameStore } from '../hooks/useGameStore';
 import { BLOCKS } from '../game/config/blocks';
 import type { BlockTypeId } from '../types';
-import { IcHome, IcRestart } from './icons';
+import { IcHome, IcRestart, IcTrophy } from './icons';
 import { FateReport } from './FateReport';
+import { RankModal } from './RankModal';
 
 function favoriteBlock(counts: Record<BlockTypeId, number>): string {
   const ids = Object.keys(counts) as BlockTypeId[];
@@ -13,6 +15,7 @@ function favoriteBlock(counts: Record<BlockTypeId, number>): string {
 
 export function GameOverScreen() {
   const s = useGameStore();
+  const [showRank, setShowRank] = useState(false);
   const info = s.gameOver;
   if (!info) return null;
 
@@ -60,6 +63,12 @@ export function GameOverScreen() {
               다시 시작
             </span>
           </button>
+          <button className="btn btn-rank" onClick={() => setShowRank(true)}>
+            <span className="btn-main">
+              <IcTrophy />
+              랭킹 등록하기
+            </span>
+          </button>
           <button className="btn btn-ghost" onClick={actions.toMenu}>
             <span className="btn-main">
               <IcHome />
@@ -68,6 +77,16 @@ export function GameOverScreen() {
           </button>
         </div>
       </div>
+      {showRank && (
+        <RankModal
+          onClose={() => setShowRank(false)}
+          submit={{
+            score: info.finalScore,
+            floor: s.stats.maxFloor,
+            maxRisk: s.stats.maxRiskSurvived,
+          }}
+        />
+      )}
     </div>
   );
 }
