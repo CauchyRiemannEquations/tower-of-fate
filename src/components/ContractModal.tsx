@@ -14,7 +14,7 @@ export function ContractModal() {
           <IcScroll size={20} />
           예언의 계약
         </h2>
-        <p className="modal-sub">하나를 골라 3번의 배치 동안 도전하세요</p>
+        <p className="modal-sub">2 / 2 · 다음 3번의 배치 동안 도전할 계약</p>
         <div className="option-list">
           {s.contractOffers.map((c) => (
             <button
@@ -29,7 +29,7 @@ export function ContractModal() {
           ))}
         </div>
         <button className="btn btn-ghost btn-skip" onClick={actions.skipContract}>
-          이번에는 넘어가기
+          계약 없이 계속
         </button>
       </div>
     </div>

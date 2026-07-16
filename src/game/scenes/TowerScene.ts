@@ -60,7 +60,7 @@ export class TowerScene extends Phaser.Scene {
   create() {
     generateAllTextures(this);
     this.buildBackground();
-    this.buildIsland();
+    this.buildGround();
 
     this.towerC = this.add.container(D.baseX, D.groundTop).setDepth(10);
     this.guide = this.add.graphics().setDepth(20);
@@ -94,9 +94,9 @@ export class TowerScene extends Phaser.Scene {
   private buildBackground() {
     this.add.image(0, 0, 'sky').setOrigin(0).setScrollFactor(0).setDepth(0);
 
-    // 달(거대 행성)
+    // 달(거대 행성) — 화면 폭 기준 우측 상단
     this.add
-      .image(392, PLAYFIELD_SCREEN_TOP + 72, 'moon')
+      .image(D.width - 88, PLAYFIELD_SCREEN_TOP + 72, 'moon')
       .setScrollFactor(0.06)
       .setDepth(1)
       .setScale(0.9);
@@ -146,30 +146,20 @@ export class TowerScene extends Phaser.Scene {
     }
   }
 
-  private buildIsland() {
-    // 섬 아래의 신비로운 광채
+  private buildGround() {
+    // 바닥 상단의 신비로운 광채
     this.add
-      .image(D.baseX, D.groundTop + 70, 'glow')
+      .image(D.baseX, D.groundTop + 30, 'glow')
       .setTint(0x8a63e8)
-      .setAlpha(0.35)
-      .setScale(4.2, 2.6)
+      .setAlpha(0.3)
+      .setScale(D.width / 100, 1.8)
       .setDepth(4);
 
-    const island = this.add
-      .image(D.baseX, D.groundTop, 'island')
+    const ground = this.add
+      .image(D.baseX, D.groundTop, 'ground')
       .setOrigin(0.5, 0)
       .setDepth(5);
-    island.setDisplaySize(D.groundWidth + 60, 190);
-
-    // 은은한 부유 애니메이션 대신 수정 반짝임
-    this.tweens.add({
-      targets: island,
-      y: D.groundTop + 3,
-      duration: 2600,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
+    ground.setDisplaySize(D.width, D.height - D.groundTop);
   }
 
   // ── 입력 ─────────────────────────────────────────────

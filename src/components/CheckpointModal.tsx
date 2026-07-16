@@ -14,7 +14,7 @@ export function CheckpointModal() {
           <IcFlag size={20} />
           {s.floor}층 체크포인트
         </h2>
-        <p className="modal-sub">이번 판의 방향을 정하세요</p>
+        <p className="modal-sub">1 / 2 · 앞으로 유지할 효과를 고르세요</p>
         <div className="option-list">
           {s.checkpointOffers.map((o) => (
             <button
@@ -33,7 +33,7 @@ export function CheckpointModal() {
           ))}
         </div>
         <button className="btn btn-ghost btn-skip" onClick={actions.skipCheckpoint}>
-          보상 없이 계속
+          효과 없이 넘어가기
         </button>
       </div>
     </div>

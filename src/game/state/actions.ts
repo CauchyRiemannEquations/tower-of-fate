@@ -111,13 +111,17 @@ function availableTypeCount(): number {
   return types.size;
 }
 
-/** 이번 층에서 계약을 제안해야 하는가 (체크포인트 층은 건너뜀) */
-function shouldOfferContract(floor: number): boolean {
-  const c = BALANCE.contracts;
+/**
+ * 체크포인트의 두 번째 단계로 계약을 제안한다.
+ * 이미 진행 중인 계약이 있으면 건너뛴다.
+ */
+function offerContractStep(): boolean {
   if (activeContract && activeContract.status === 'active') return false;
-  if (floor < c.firstFloor) return false;
-  if (floor % BALANCE.checkpoints.every === 0) return false;
-  return (floor - c.firstFloor) % c.everyFloors === 0;
+  store.setState({
+    phase: 'contract',
+    contractOffers: offerContracts(availableTypeCount()),
+  });
+  return true;
 }
 
 function applyContractReward(id: ContractId) {
@@ -397,17 +401,13 @@ export const actions = {
     // 다음 손패는 즉시 드로우 (모달은 그 위에 뜬다)
     const offers = drawHand(deck);
 
-    // ── 다음 단계 결정: 체크포인트 선택 → 계약 제안 → 일반 진행 ──
-    let phase: 'choosing' | 'contract' | 'checkpoint' = 'choosing';
-    let contractOffers = null as ReturnType<typeof offerContracts> | null;
+    // ── 다음 단계: 체크포인트면 선택 모달(효과 → 계약), 아니면 일반 진행 ──
+    let phase: 'choosing' | 'checkpoint' = 'choosing';
     let checkpointOffers = null as CheckpointOption[] | null;
 
     if (isCheckpoint) {
       phase = 'checkpoint';
       checkpointOffers = offerCheckpointOptions(effects.paths, effects.relics);
-    } else if (shouldOfferContract(floor)) {
-      phase = 'contract';
-      contractOffers = offerContracts(availableTypeCount());
     }
 
     store.setState({
@@ -422,7 +422,7 @@ export const actions = {
       aimRisk: null,
       offers,
       runLog,
-      contractOffers,
+      contractOffers: null,
       checkpointOffers,
     });
     syncSystems();
@@ -430,7 +430,7 @@ export const actions = {
     gameEvents.emit('survived', judge);
   },
 
-  /** 계약 선택 */
+  /** 계약 선택 (체크포인트 2단계) */
   chooseContract(id: ContractId) {
     const s = store.getState();
     if (s.phase !== 'contract') return;
@@ -445,7 +445,7 @@ export const actions = {
     store.setState({ phase: 'choosing', contractOffers: null });
   },
 
-  /** 체크포인트 길/유물 선택 */
+  /** 체크포인트 1단계: 길/유물 선택 → 이어서 계약 제안 */
   chooseCheckpoint(option: CheckpointOption) {
     const s = store.getState();
     if (s.phase !== 'checkpoint') return;
@@ -474,11 +474,13 @@ export const actions = {
     sfx.checkpoint();
     store.setState({ phase: 'choosing', checkpointOffers: null });
     syncSystems();
+    offerContractStep();
   },
 
   skipCheckpoint() {
     if (store.getState().phase !== 'checkpoint') return;
     store.setState({ phase: 'choosing', checkpointOffers: null });
+    offerContractStep();
   },
 
   /** Phaser 붕괴 애니메이션 종료 후 호출 */
@@ -558,5 +560,10 @@ export const actions = {
     if (next) sfx.select();
   },
 };
+
+// ?debug 모드에서 콘솔 디버깅용으로 노출
+if (typeof window !== 'undefined' && window.location.search.includes('debug')) {
+  (window as unknown as { __actions: typeof actions }).__actions = actions;
+}
 
 export { BALANCE };

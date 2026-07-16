@@ -3,12 +3,17 @@
  * 게임 감각을 조정할 때는 이 파일만 수정하면 된다.
  */
 export const BALANCE = {
+  /**
+   * 디자인 해상도. 높이는 854로 고정하고, 폭은 기기 화면 비율에 맞춰
+   * 게임 시작 시 configureDesign()이 계산한다 (배경이 항상 꽉 찬다).
+   */
   design: {
     width: 480,
     height: 854,
     baseX: 240,
     groundTop: 566,
-    groundWidth: 216,
+    /** 첫 블록을 받치는 바닥 폭 — 화면 전체 폭으로 설정된다 */
+    groundWidth: 480,
   },
 
   /** 운명 덱 — 한 판을 구성하는 블록 카드 수량 */
@@ -26,10 +31,8 @@ export const BALANCE = {
     fallbackCard: 'wood',
   },
 
-  /** 예언 계약 */
+  /** 예언 계약 — 체크포인트에서 효과 선택 후 이어서 제안된다 */
   contracts: {
-    firstFloor: 3,
-    everyFloors: 4,
     /** 계약이 적용되는 배치 수 */
     duration: 3,
     /** 보상 버프가 적용되는 배치 수 */
@@ -123,7 +126,21 @@ export const BALANCE = {
     /** 좌우 영역 터치 시 이동량 */
     nudge: 14,
   },
-} as const;
+};
+
+/**
+ * 기기 화면 비율에 맞춰 디자인 폭을 계산한다.
+ * 높이 854 기준으로 폭을 늘리거나 줄여 배경이 항상 화면을 꽉 채우고,
+ * 바닥(groundWidth)도 화면 전체 폭이 된다.
+ * 반드시 Phaser 게임 생성(텍스처 생성) 전에 호출해야 한다.
+ */
+export function configureDesign(viewW: number, viewH: number) {
+  const d = BALANCE.design;
+  const aspect = viewW / Math.max(1, viewH);
+  d.width = Math.round(Math.min(1100, Math.max(400, d.height * aspect)));
+  d.baseX = Math.round(d.width / 2);
+  d.groundWidth = d.width;
+}
 
 export const LS_KEYS = {
   best: 'towerOfFate.best',

@@ -362,78 +362,76 @@ function drawSky(ctx: Ctx, w: number, h: number) {
   ctx.fillRect(0, 0, w, h);
 }
 
-function drawIsland(ctx: Ctx, w: number, h: number) {
-  const topH = h * 0.3;
-  // 아래로 뾰족한 바위
-  ctx.beginPath();
-  ctx.moveTo(w * 0.06, topH);
-  ctx.lineTo(w * 0.94, topH);
-  ctx.lineTo(w * 0.8, h * 0.55);
-  ctx.lineTo(w * 0.62, h * 0.78);
-  ctx.lineTo(w * 0.5, h * 0.98);
-  ctx.lineTo(w * 0.36, h * 0.7);
-  ctx.lineTo(w * 0.18, h * 0.5);
-  ctx.closePath();
-  const rock = ctx.createLinearGradient(0, topH, 0, h);
-  rock.addColorStop(0, '#4a4270');
-  rock.addColorStop(1, '#241f42');
+/** 화면 전체 폭을 채우는 마법 석재 바닥 */
+function drawGround(ctx: Ctx, w: number, h: number) {
+  // 본체 — 아래로 갈수록 어두워지는 석재
+  const rock = ctx.createLinearGradient(0, 0, 0, h);
+  rock.addColorStop(0, '#6a5fa0');
+  rock.addColorStop(0.25, '#4a4278');
+  rock.addColorStop(0.7, '#2a2450');
+  rock.addColorStop(1, '#161230');
   ctx.fillStyle = rock;
-  ctx.fill();
-  ctx.strokeStyle = '#191536';
-  ctx.lineWidth = 2 * S;
-  ctx.stroke();
+  ctx.fillRect(0, 0, w, h);
 
-  // 상판 석재
-  const slab = ctx.createLinearGradient(0, 0, 0, topH);
-  slab.addColorStop(0, '#8a7fc0');
-  slab.addColorStop(1, '#5a5090');
-  ctx.fillStyle = slab;
-  rr(ctx, 0, 0, w, topH, 7 * S);
-  ctx.fill();
-  ctx.strokeStyle = '#332b60';
-  ctx.lineWidth = 2 * S;
-  rr(ctx, 1, 1, w - 2, topH - 2, 7 * S);
-  ctx.stroke();
-  // 벽돌 줄눈
-  ctx.strokeStyle = 'rgba(40,32,80,0.5)';
-  ctx.lineWidth = 1.2 * S;
-  ctx.beginPath();
-  ctx.moveTo(0, topH * 0.5);
-  ctx.lineTo(w, topH * 0.5);
-  ctx.stroke();
-  for (const fx of [0.25, 0.5, 0.75]) {
-    ctx.beginPath();
-    ctx.moveTo(w * fx, 2);
-    ctx.lineTo(w * fx, topH * 0.5);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(w * (fx - 0.125), topH * 0.5);
-    ctx.lineTo(w * (fx - 0.125), topH - 2);
-    ctx.stroke();
-  }
-  // 룬 발광 라인
-  ctx.strokeStyle = 'rgba(126,255,224,0.75)';
+  // 상단 모서리 하이라이트
+  ctx.fillStyle = 'rgba(210,200,255,0.35)';
+  ctx.fillRect(0, 0, w, 3 * S);
+
+  // 벽돌 줄눈 (엇갈린 패턴)
+  ctx.strokeStyle = 'rgba(25,20,55,0.55)';
   ctx.lineWidth = 1.6 * S;
-  ctx.shadowColor = 'rgba(126,255,224,0.8)';
-  ctx.shadowBlur = 6 * S;
-  ctx.beginPath();
-  ctx.moveTo(w * 0.1, topH + 4 * S);
-  ctx.lineTo(w * 0.9, topH + 4 * S);
-  ctx.stroke();
-  ctx.shadowBlur = 0;
-  // 매달린 수정
-  for (const [cx, cy, r] of [
-    [0.3, 0.62, 4], [0.68, 0.66, 5], [0.52, 0.86, 3.4],
-  ] as const) {
-    ctx.fillStyle = 'rgba(140,240,235,0.85)';
+  const rowH = 26 * S;
+  const brickW = 64 * S;
+  const rows = Math.min(4, Math.floor(h / rowH));
+  for (let r = 1; r <= rows; r++) {
     ctx.beginPath();
-    ctx.moveTo(w * cx, h * cy - r * S);
-    ctx.lineTo(w * cx + r * S * 0.7, h * cy);
-    ctx.lineTo(w * cx, h * cy + r * S * 1.3);
-    ctx.lineTo(w * cx - r * S * 0.7, h * cy);
-    ctx.closePath();
-    ctx.fill();
+    ctx.moveTo(0, r * rowH);
+    ctx.lineTo(w, r * rowH);
+    ctx.stroke();
   }
+  for (let r = 0; r < rows; r++) {
+    const off = r % 2 === 0 ? 0 : brickW / 2;
+    for (let x = off; x < w; x += brickW) {
+      ctx.beginPath();
+      ctx.moveTo(x, r * rowH + (r === 0 ? 3 * S : 0));
+      ctx.lineTo(x, (r + 1) * rowH);
+      ctx.stroke();
+    }
+  }
+
+  // 표면의 옅은 균열·풍화 흔적
+  ctx.strokeStyle = 'rgba(20,16,45,0.5)';
+  ctx.lineWidth = 1.2 * S;
+  for (let i = 0; i < 5; i++) {
+    const x0 = w * (0.08 + i * 0.19);
+    const y0 = rowH * (0.3 + (i % 3) * 0.8);
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x0 + 10 * S, y0 + 8 * S);
+    ctx.lineTo(x0 + 6 * S, y0 + 16 * S);
+    ctx.stroke();
+  }
+
+  // 룬 발광 라인 — 바닥 상단을 가로지르는 안정화 마법
+  ctx.strokeStyle = 'rgba(126,255,224,0.8)';
+  ctx.lineWidth = 1.8 * S;
+  ctx.shadowColor = 'rgba(126,255,224,0.9)';
+  ctx.shadowBlur = 7 * S;
+  ctx.beginPath();
+  ctx.moveTo(0, 8 * S);
+  ctx.lineTo(w, 8 * S);
+  ctx.stroke();
+  // 룬 문양 점점이
+  for (let x = w * 0.08; x < w; x += w * 0.14) {
+    ctx.beginPath();
+    ctx.moveTo(x, 16 * S);
+    ctx.lineTo(x + 4 * S, 21 * S);
+    ctx.lineTo(x, 26 * S);
+    ctx.lineTo(x - 4 * S, 21 * S);
+    ctx.closePath();
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
 }
 
 function drawGlow(ctx: Ctx, size: number, color: string) {
@@ -515,14 +513,14 @@ export function generateAllTextures(scene: Phaser.Scene) {
     }
   }
 
-  // 부유섬 받침대
+  // 화면 전체 폭 바닥
   {
-    const w = (BALANCE.design.groundWidth + 60) * S;
-    const h = 190 * S;
-    const ctx = canvasTex(scene, 'island', w, h);
+    const w = BALANCE.design.width * S;
+    const h = (BALANCE.design.height - BALANCE.design.groundTop) * S;
+    const ctx = canvasTex(scene, 'ground', w, h);
     if (ctx) {
-      drawIsland(ctx, w, h);
-      refresh(scene, 'island');
+      drawGround(ctx, w, h);
+      refresh(scene, 'ground');
     }
   }
 
