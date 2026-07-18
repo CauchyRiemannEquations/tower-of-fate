@@ -51,8 +51,10 @@ export class TowerScene extends Phaser.Scene {
   private blockSprites: Phaser.GameObjects.Image[] = [];
   /** 블록 위에 얹힌 균열 오버레이 (손상 표현) */
   private crackOverlays: Phaser.GameObjects.Image[] = [];
-  /** 붕괴 물리 연출용 정적 바닥 (붕괴 동안만 존재) */
-  private collapseFloor: MatterJS.BodyType | null = null;
+  /** 붕괴 물리 연출용 정적 바닥·벽 (붕괴 동안만 존재) */
+  private collapseStatics: MatterJS.BodyType[] = [];
+  /** 잔해 충돌음 연타 방지 타임스탬프 */
+  private lastThudAt = 0;
   /** 붕괴 중 물리 바디와 스프라이트 짝 — update()에서 위치를 동기화 */
   private physicsPairs: {
     sprite: Phaser.GameObjects.Image;
@@ -88,9 +90,17 @@ export class TowerScene extends Phaser.Scene {
       gameEvents.on('survived', (j: JudgeResult) => this.onSurvived(j)),
     );
 
+    // 붕괴 잔해 충돌 처리 (유리 파쇄·충돌음)
+    this.matter.world.on(
+      'collisionstart',
+      (event: Phaser.Physics.Matter.Events.CollisionStartEvent) =>
+        this.onMatterCollision(event),
+    );
+
     this.events.on(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubs.forEach((u) => u());
       this.unsubs = [];
+      this.matter.world.off('collisionstart');
     });
 
     this.setupInput();
@@ -712,13 +722,21 @@ export class TowerScene extends Phaser.Scene {
     });
 
     // — 블록들이 물리 바디가 되어 실제로 무너진다
-    this.collapseFloor = this.matter.add.rectangle(
-      D.baseX,
-      D.groundTop + 80,
-      D.width * 3,
-      160,
-      { isStatic: true, friction: 0.9 },
-    );
+    // 바닥 + 화면 양옆 벽: 잔해가 화면 밖으로 사라지지 않고 쌓이게 한다
+    this.collapseStatics = [
+      this.matter.add.rectangle(D.baseX, D.groundTop + 80, D.width * 3, 160, {
+        isStatic: true,
+        friction: 0.9,
+      }),
+      this.matter.add.rectangle(-40, D.groundTop - 250, 80, 1400, {
+        isStatic: true,
+        restitution: 0.1,
+      }),
+      this.matter.add.rectangle(D.width + 40, D.groundTop - 250, 80, 1400, {
+        isStatic: true,
+        restitution: 0.1,
+      }),
+    ];
     this.time.delayedCall(250, () => this.releasePhysicsBlocks(dir));
 
     // 바닥 먼지 폭발
@@ -802,6 +820,7 @@ export class TowerScene extends Phaser.Scene {
         def.width,
         def.height,
         {
+          label: def.id,
           angle: Phaser.Math.DegToRad(this.towerC.angle),
           restitution: 0.25,
           friction: 0.6,
@@ -810,31 +829,63 @@ export class TowerScene extends Phaser.Scene {
         },
       );
 
-      // 위층일수록 세게 튕겨나간다
+      // 위층일수록 조금 더 튕겨나간다 (화면 안에 잔해가 쌓일 정도로만)
       const topness = n > 1 ? i / (n - 1) : 1;
       Body.setVelocity(body, {
-        x: dir * (1.5 + topness * 4 + Math.random() * 2) + (Math.random() - 0.5) * 2,
-        y: -(2 + Math.random() * 3),
+        x: dir * (1 + topness * 2.2 + Math.random() * 1.2) + (Math.random() - 0.5) * 1.5,
+        y: -(1.5 + Math.random() * 2),
       });
-      Body.setAngularVelocity(body, dir * (0.08 + Math.random() * 0.18));
+      Body.setAngularVelocity(body, dir * (0.05 + Math.random() * 0.12));
 
       this.physicsPairs.push({ sprite, body });
 
       if (def.fragile) {
-        // 유리는 잠시 구르다 공중에서 산산조각
-        this.time.delayedCall(380 + Math.random() * 320, () => {
-          if (!sprite.active || !sprite.visible) return;
-          this.fx.shardBurst(sprite.x, sprite.y, 20);
-          sfx.shatter();
-          this.detachPhysics(sprite);
-          sprite.setVisible(false);
-        });
+        // 유리는 충돌 시 깨진다(onMatterCollision). 만약 아무 데도 부딪히지
+        // 않았다면 붕괴 종료 직전에 안전하게 깨뜨린다.
+        this.time.delayedCall(1900, () => this.shatterGlass(sprite));
       } else if (def.id === 'gold') {
         this.time.delayedCall(420, () => {
           if (sprite.active) this.fx.coinBurst(sprite.x, sprite.y, 10);
         });
       }
     });
+  }
+
+  /** 유리 블록을 현재 위치에서 산산조각 낸다 (중복 호출 안전) */
+  private shatterGlass(sprite: Phaser.GameObjects.Image) {
+    if (!sprite.active || !sprite.visible) return;
+    this.fx.shardBurst(sprite.x, sprite.y, 22);
+    sfx.shatter();
+    this.detachPhysics(sprite);
+    sprite.setVisible(false);
+  }
+
+  /**
+   * 붕괴 중 잔해 충돌 처리: 유리는 부딪히는 순간 깨지고,
+   * 무거운 충돌에는 소리와 먼지를 낸다.
+   */
+  private onMatterCollision(event: Phaser.Physics.Matter.Events.CollisionStartEvent) {
+    if (!this.collapsing) return;
+    for (const pair of event.pairs) {
+      for (const body of [pair.bodyA, pair.bodyB]) {
+        const entry = this.physicsPairs.find((p) => p.body === body);
+        if (!entry) continue;
+
+        // 유리: 실제로 부딪히는 순간 산산조각
+        if (body.label === 'glass' && body.speed > 2) {
+          this.shatterGlass(entry.sprite);
+          continue;
+        }
+
+        // 잔해 충돌음 + 먼지 (연타 방지)
+        if (body.speed > 3 && this.time.now - this.lastThudAt > 100) {
+          this.lastThudAt = this.time.now;
+          if (body.label === 'wood') sfx.landWood();
+          else sfx.landStone();
+          this.fx.landingDust(entry.sprite.x, entry.sprite.y + 8, 5, 0x9c8ac9);
+        }
+      }
+    }
   }
 
   /** 스프라이트에 연결된 물리 바디를 제거 */
@@ -881,10 +932,8 @@ export class TowerScene extends Phaser.Scene {
     this.kickAngle = 0;
 
     // 붕괴 물리 정리
-    if (this.collapseFloor) {
-      this.matter.world.remove(this.collapseFloor);
-      this.collapseFloor = null;
-    }
+    this.collapseStatics.forEach((b) => this.matter.world.remove(b));
+    this.collapseStatics = [];
     this.matter.world.engine.timing.timeScale = 1;
 
     this.tweens.timeScale = 1;
