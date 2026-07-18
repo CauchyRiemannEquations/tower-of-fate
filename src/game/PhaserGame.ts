@@ -22,6 +22,14 @@ export function initGame(parent: HTMLElement): Phaser.Game {
       height: BALANCE.design.height,
     },
     scene: [TowerScene],
+    // 물리는 붕괴 연출 전용 — 판정은 언제나 확률이 결정한다
+    physics: {
+      default: 'matter',
+      matter: {
+        gravity: { x: 0, y: 1.4 },
+        debug: false,
+      },
+    },
     input: { activePointers: 2 },
     render: { antialias: true, roundPixels: false },
   });

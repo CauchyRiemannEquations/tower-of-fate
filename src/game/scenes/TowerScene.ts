@@ -51,6 +51,13 @@ export class TowerScene extends Phaser.Scene {
   private blockSprites: Phaser.GameObjects.Image[] = [];
   /** 블록 위에 얹힌 균열 오버레이 (손상 표현) */
   private crackOverlays: Phaser.GameObjects.Image[] = [];
+  /** 붕괴 물리 연출용 정적 바닥 (붕괴 동안만 존재) */
+  private collapseFloor: MatterJS.BodyType | null = null;
+  /** 붕괴 중 물리 바디와 스프라이트 짝 — update()에서 위치를 동기화 */
+  private physicsPairs: {
+    sprite: Phaser.GameObjects.Image;
+    body: MatterJS.BodyType;
+  }[] = [];
   private unsubs: (() => void)[] = [];
 
   constructor() {
@@ -256,6 +263,12 @@ export class TowerScene extends Phaser.Scene {
     if (!this.collapsing && this.towerC) {
       this.towerC.angle =
         this.baseTilt + Math.sin(time / 700) * this.swayAmp + this.kickAngle;
+    }
+
+    // 붕괴 물리: 스프라이트를 바디 위치에 동기화
+    for (const p of this.physicsPairs) {
+      p.sprite.setPosition(p.body.position.x, p.body.position.y);
+      p.sprite.rotation = p.body.angle;
     }
 
     const phase = store.getState().phase;
@@ -631,76 +644,46 @@ export class TowerScene extends Phaser.Scene {
 
     // 무너지기 직전, 모든 블록에 금이 간다
     this.blockSprites.forEach((_, i) => {
-      this.time.delayedCall(i * 40, () => this.addCrack(i, false));
+      this.time.delayedCall(i * 30, () => this.addCrack(i, false));
     });
     sfx.crack();
 
-    // 기존 균열 오버레이는 붕괴와 함께 흩어진다
-    this.time.delayedCall(500, () => {
-      this.crackOverlays.forEach((c) => {
-        this.tweens.add({ targets: c, alpha: 0, duration: 500 });
-      });
+    // 균열 오버레이는 붕괴와 함께 흩어진다
+    this.crackOverlays.forEach((c) => {
+      this.tweens.add({ targets: c, alpha: 0, duration: 350, delay: 220 });
     });
 
     const lost = store.getState().tower;
     const comOffset = tower.comX() - (tower.blocks[0]?.x ?? 0);
     const dir = Math.sign(comOffset) || (Math.random() < 0.5 ? -1 : 1);
 
-    // 짧은 슬로모션 후 대붕괴
+    // 짧은 슬로모션 (트윈 + 물리 동시 감속)
     this.tweens.timeScale = 0.45;
-    this.time.delayedCall(320, () => {
+    this.matter.world.engine.timing.timeScale = 0.45;
+    this.time.delayedCall(400, () => {
       this.tweens.timeScale = 1;
+      this.matter.world.engine.timing.timeScale = 1;
     });
 
     this.cameras.main.shake(650, 0.014);
 
-    // 탑 전체가 한쪽으로 크게 기울어짐
+    // 무게중심 방향으로 살짝 기운 뒤 —
     this.tweens.add({
       targets: this.towerC,
-      angle: dir * 24,
-      duration: 700,
+      angle: dir * 9,
+      duration: 240,
       ease: 'Quad.easeIn',
     });
 
-    const n = this.blockSprites.length;
-    const mat = new Phaser.GameObjects.Components.TransformMatrix();
-
-    this.blockSprites.forEach((sprite, i) => {
-      const def = tower.blocks[i]?.def;
-      const delay = (n - 1 - i) * 75;
-
-      if (def?.fragile) {
-        // 유리는 산산조각
-        this.time.delayedCall(delay + 150, () => {
-          this.towerC.getWorldTransformMatrix(mat);
-          const p = mat.transformPoint(sprite.x, sprite.y - def.height / 2);
-          this.fx.shardBurst(p.x, p.y, 20);
-          sfx.shatter();
-          sprite.setVisible(false);
-        });
-        return;
-      }
-
-      const spin = def?.id === 'gold' ? 720 : 120 + Math.random() * 240;
-      this.tweens.add({
-        targets: sprite,
-        x: sprite.x + dir * (140 + Math.random() * 170) + (Math.random() - 0.5) * 60,
-        y: sprite.y + 460 + Math.random() * 240,
-        angle: dir * spin,
-        alpha: 0,
-        duration: 1000,
-        delay,
-        ease: 'Quad.easeIn',
-      });
-
-      if (def?.id === 'gold') {
-        this.time.delayedCall(delay + 200, () => {
-          this.towerC.getWorldTransformMatrix(mat);
-          const p = mat.transformPoint(sprite.x, sprite.y);
-          this.fx.coinBurst(p.x, p.y, 10);
-        });
-      }
-    });
+    // — 블록들이 물리 바디가 되어 실제로 무너진다
+    this.collapseFloor = this.matter.add.rectangle(
+      D.baseX,
+      D.groundTop + 80,
+      D.width * 3,
+      160,
+      { isStatic: true, friction: 0.9 },
+    );
+    this.time.delayedCall(250, () => this.releasePhysicsBlocks(dir));
 
     // 바닥 먼지 폭발
     this.time.delayedCall(350, () => {
@@ -735,9 +718,96 @@ export class TowerScene extends Phaser.Scene {
       });
     }
 
-    this.time.delayedCall(1900, () => {
+    this.time.delayedCall(2300, () => {
       actions.finishCollapse();
     });
+  }
+
+  /**
+   * 붕괴 순간, 탑의 모든 블록을 Matter 동적 바디로 전환한다.
+   * 결과(붕괴)는 이미 확률이 결정했고, 물리는 오직 연출을 담당한다.
+   * 스프라이트는 순수 바디에 update()에서 수동 동기화한다.
+   */
+  private releasePhysicsBlocks(dir: number) {
+    // 타입 정의에 없는 런타임 네임스페이스 (Phaser가 원본 Matter를 노출)
+    const { Body } = (
+      Phaser.Physics.Matter as unknown as {
+        Matter: {
+          Body: {
+            setVelocity(b: MatterJS.BodyType, v: { x: number; y: number }): void;
+            setAngularVelocity(b: MatterJS.BodyType, w: number): void;
+          };
+        };
+      }
+    ).Matter;
+    const mat = new Phaser.GameObjects.Components.TransformMatrix();
+    const n = this.blockSprites.length;
+
+    this.blockSprites.forEach((sprite, i) => {
+      const def = tower.blocks[i]?.def;
+      if (!def || !sprite.visible) return;
+
+      // 남은 트윈(착지 스쿼시 등)이 위치·스케일을 덮어쓰지 않게 제거
+      this.tweens.killTweensOf(sprite);
+
+      // 컨테이너(기울기 포함) 좌표 → 월드 중심 좌표로 재부모화
+      this.towerC.getWorldTransformMatrix(mat);
+      const center = mat.transformPoint(sprite.x, sprite.y - def.height / 2);
+      this.towerC.remove(sprite);
+      sprite.setOrigin(0.5, 0.5);
+      sprite.setPosition(center.x, center.y);
+      sprite.setAngle(this.towerC.angle);
+      sprite.setDepth(10);
+      this.add.existing(sprite);
+
+      const body = this.matter.add.rectangle(
+        center.x,
+        center.y,
+        def.width,
+        def.height,
+        {
+          angle: Phaser.Math.DegToRad(this.towerC.angle),
+          restitution: 0.25,
+          friction: 0.6,
+          frictionAir: 0.012,
+          density: 0.0012 + def.weight * 0.0004,
+        },
+      );
+
+      // 위층일수록 세게 튕겨나간다
+      const topness = n > 1 ? i / (n - 1) : 1;
+      Body.setVelocity(body, {
+        x: dir * (1.5 + topness * 4 + Math.random() * 2) + (Math.random() - 0.5) * 2,
+        y: -(2 + Math.random() * 3),
+      });
+      Body.setAngularVelocity(body, dir * (0.08 + Math.random() * 0.18));
+
+      this.physicsPairs.push({ sprite, body });
+
+      if (def.fragile) {
+        // 유리는 잠시 구르다 공중에서 산산조각
+        this.time.delayedCall(380 + Math.random() * 320, () => {
+          if (!sprite.active || !sprite.visible) return;
+          this.fx.shardBurst(sprite.x, sprite.y, 20);
+          sfx.shatter();
+          this.detachPhysics(sprite);
+          sprite.setVisible(false);
+        });
+      } else if (def.id === 'gold') {
+        this.time.delayedCall(420, () => {
+          if (sprite.active) this.fx.coinBurst(sprite.x, sprite.y, 10);
+        });
+      }
+    });
+  }
+
+  /** 스프라이트에 연결된 물리 바디를 제거 */
+  private detachPhysics(sprite: Phaser.GameObjects.Image) {
+    const idx = this.physicsPairs.findIndex((p) => p.sprite === sprite);
+    if (idx >= 0) {
+      this.matter.world.remove(this.physicsPairs[idx].body);
+      this.physicsPairs.splice(idx, 1);
+    }
   }
 
   private playBanked() {
@@ -759,7 +829,12 @@ export class TowerScene extends Phaser.Scene {
     this.currentBreakdown = null;
     this.guide.clear();
 
-    this.blockSprites.forEach((s) => s.destroy());
+    this.physicsPairs.forEach((p) => this.matter.world.remove(p.body));
+    this.physicsPairs = [];
+    this.blockSprites.forEach((s) => {
+      this.tweens.killTweensOf(s);
+      s.destroy();
+    });
     this.blockSprites = [];
     this.crackOverlays.forEach((c) => c.destroy());
     this.crackOverlays = [];
@@ -768,6 +843,13 @@ export class TowerScene extends Phaser.Scene {
     this.baseTilt = 0;
     this.swayAmp = 0;
     this.kickAngle = 0;
+
+    // 붕괴 물리 정리
+    if (this.collapseFloor) {
+      this.matter.world.remove(this.collapseFloor);
+      this.collapseFloor = null;
+    }
+    this.matter.world.engine.timing.timeScale = 1;
 
     this.tweens.timeScale = 1;
     this.cameras.main.scrollY = 0;
