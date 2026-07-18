@@ -40,8 +40,8 @@ export const BALANCE = {
   },
 
   risk: {
-    /** 이 픽셀 이내로 중심을 맞추면 PERFECT */
-    perfectPx: 8,
+    /** 이 픽셀 이내로 받침 중심을 맞추면 안정 보너스 */
+    stableCenterPx: 8,
     /** 치우침이 최대일 때 더해지는 위험 */
     offsetMax: 22,
     /** 지지면이 전혀 없을 때 더해지는 위험 */
@@ -53,7 +53,7 @@ export const BALANCE = {
     /** 높이 위험이 붙기 시작하기 전 무료 층수 */
     heightFreeFloors: 2,
     foundationBonus: -7,
-    perfectBonus: -8,
+    stableCenterBonus: -8,
     centeredBonus: -4,
     wideSupportBonus: -5,
     clampMin: 2,
@@ -70,11 +70,27 @@ export const BALANCE = {
   },
 
   score: {
-    mult30: 1.2,
-    mult50: 1.5,
-    mult70: 2.0,
+    /** 위험을 감수한 배치가 생존 기대값에서도 이득이 되도록 설정 */
+    mult30: 1.6,
+    mult50: 2.4,
+    mult70: 4.0,
     perfectFlat: 15,
     comboStep: 5,
+  },
+
+  /** 매 턴 좌우에 나타나는 고득점 목표인 운명의 표식 */
+  fate: {
+    /** 표식 중심으로부터 이 픽셀 이내면 PERFECT */
+    targetPx: 8,
+    /** 받침 폭에 비례해 계산한 표식 거리의 최소·최대값 */
+    minOffset: 22,
+    maxOffset: 42,
+    supportRatio: 0.24,
+    /** 콤보가 높을수록 표식이 조금씩 더 멀어진다 */
+    comboOffsetStep: 2,
+    comboOffsetMax: 12,
+    /** 직전 블록 중심에서 표식까지 허용하는 최대 이동 비율 */
+    maxShiftRatio: 0.42,
   },
 
   /** 5층마다 탑 위 점수 일부를 자동 저장 */
@@ -96,7 +112,7 @@ export const BALANCE = {
     glassChainMax: 3,
     /** 유리 장인: 유리 위 유리 추가 위험 */
     glassOnGlassExtra: 4,
-    /** 균형 설계자: PERFECT 판정 범위 확대(px) */
+    /** 균형 설계자: 운명의 표식 PERFECT 판정 범위 확대(px) */
     balancePerfectPx: 3,
     /** 균형 설계자: 좌우 교차 배치 점수 보너스 */
     alternateScoreBonus: 0.1,

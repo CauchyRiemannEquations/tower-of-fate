@@ -24,6 +24,7 @@ export function computeRisk(
   def: BlockDef,
   x: number,
   mods: RiskMods = neutralRiskMods(),
+  fateTargetX: number | null = null,
 ): RiskBreakdown {
   const factors: RiskFactor[] = [];
   let total = 0;
@@ -36,14 +37,15 @@ export function computeRisk(
   add('기본 위험', def.baseRisk);
 
   const below = tower.top();
-  let perfect = false;
+  // PERFECT는 안전한 중심이 아니라 이번 턴의 운명의 표식으로 판정한다.
+  const perfect =
+    fateTargetX !== null && Math.abs(x - fateTargetX) <= mods.perfectPx;
 
   if (!below) {
     // 첫 블록: 받침대 위 배치
     const ratio = Math.min(1.2, Math.abs(x) / (BALANCE.design.groundWidth / 2));
-    if (Math.abs(x) <= mods.perfectPx) {
-      perfect = true;
-      add('완벽한 중심', R.perfectBonus);
+    if (Math.abs(x) <= R.stableCenterPx) {
+      add('안정적인 중심', R.stableCenterBonus);
     } else if (ratio > 0.25) {
       add('받침대 가장자리', Math.round(ratio * 14));
     }
@@ -55,9 +57,8 @@ export function computeRisk(
 
     // ① 중심 치우침
     const offsetRatio = Math.min(1.4, absDx / halfBelow);
-    if (absDx <= mods.perfectPx) {
-      perfect = true;
-      add('완벽한 중심', R.perfectBonus);
+    if (absDx <= R.stableCenterPx) {
+      add('안정적인 중심', R.stableCenterBonus);
     } else if (offsetRatio < 0.14) {
       add('안정된 중심', R.centeredBonus);
     } else {

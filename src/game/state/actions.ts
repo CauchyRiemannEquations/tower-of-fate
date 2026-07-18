@@ -54,6 +54,8 @@ let rerolls = 0;
 let insuranceUsed = false;
 let fairness: FairnessState = { shieldUsed: false };
 let toastId = 0;
+/** 운명의 표식은 좌우를 번갈아 가며 제안한다. */
+let nextFateSide: -1 | 1 = 1;
 /** 메뉴의 "플레이 방법"으로 시작된 판인지 — 튜토리얼 종료 시 메인 복귀 */
 let tutorialFromMenu = false;
 
@@ -73,6 +75,40 @@ function saveBest(score: number): boolean {
     return true;
   }
   return false;
+}
+
+/**
+ * 현재 탑을 기준으로 다음 운명의 표식 위치를 만든다.
+ * 좌우 교차를 기본으로 하되 현재 받침에서 지나치게 멀어지지 않게 제한한다.
+ */
+function createFateTarget(combo: number): number {
+  const F = BALANCE.fate;
+  const below = tower.top();
+  const baseX = tower.blocks[0]?.x ?? 0;
+  const supportX = below?.x ?? 0;
+  const supportWidth = below?.def.width ?? BALANCE.design.groundWidth;
+  const comboExtra = Math.min(F.comboOffsetMax, combo * F.comboOffsetStep);
+  const distance = Math.min(
+    F.maxOffset,
+    Math.max(F.minOffset, supportWidth * F.supportRatio + comboExtra),
+  );
+
+  let side = nextFateSide;
+  let desired = baseX + side * distance;
+  const maxShift = Math.max(F.minOffset, supportWidth * F.maxShiftRatio);
+  desired = Math.max(supportX - maxShift, Math.min(supportX + maxShift, desired));
+
+  if (Math.abs(desired) > BALANCE.aim.maxOffset) {
+    side = side === 1 ? -1 : 1;
+    desired = baseX + side * distance;
+    desired = Math.max(supportX - maxShift, Math.min(supportX + maxShift, desired));
+  }
+
+  const x = Math.round(
+    Math.max(-BALANCE.aim.maxOffset, Math.min(BALANCE.aim.maxOffset, desired)),
+  );
+  nextFateSide = side === 1 ? -1 : 1;
+  return x;
 }
 
 /** 예언자의 길/렌즈 보유 시 다음 카드 1장을 미리 보여준다 */
@@ -164,6 +200,8 @@ export const actions = {
     activeContract = null;
     rerolls = 0;
     insuranceUsed = false;
+    nextFateSide = Math.random() < 0.5 ? -1 : 1;
+    const fateTarget = createFateTarget(0);
 
     const prev = store.getState();
     let tutorialStep = -1;
@@ -180,6 +218,7 @@ export const actions = {
       offers: drawHand(deck, Math.random, {
         guaranteeSafe: BALANCE.deck.safeFirstHand,
       }),
+      fateTargetX: fateTarget,
       tutorialStep,
       tutorialReplay: tutorialFromMenu,
     });
@@ -284,6 +323,7 @@ export const actions = {
     });
 
     // 점수는 생존/붕괴 무관하게 산출해 분석서(기대값)에 기록
+    // 가운데 정렬과 별개로 운명의 표식을 맞힌 경우에만 콤보가 이어진다.
     const perfect = breakdown.perfect;
     const combo = perfect ? s.combo + 1 : 0;
     const scoreMods = buildScoreMods(effects);
@@ -400,6 +440,7 @@ export const actions = {
 
     // 다음 손패는 즉시 드로우 (모달은 그 위에 뜬다)
     const offers = drawHand(deck);
+    const nextFateTarget = createFateTarget(combo);
 
     // ── 다음 단계: 체크포인트면 선택 모달(효과 → 계약), 아니면 일반 진행 ──
     let phase: 'choosing' | 'checkpoint' = 'choosing';
@@ -420,6 +461,7 @@ export const actions = {
       lastJudge: judge,
       selected: null,
       aimRisk: null,
+      fateTargetX: nextFateTarget,
       offers,
       runLog,
       contractOffers: null,

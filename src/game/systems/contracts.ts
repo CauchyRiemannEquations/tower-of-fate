@@ -70,7 +70,7 @@ export const CONTRACT_SPECS: Record<ContractId, ContractSpec> = {
   engineer: {
     id: 'engineer',
     name: '정밀공학자의 계약',
-    desc: '3회 배치 안에 PERFECT를 2번 달성하세요.',
+    desc: '3회 배치 안에 운명의 표식을 2번 맞히세요.',
     reward: '다음 유리/금괴 블록 위험 -10%',
     target: 2,
   },

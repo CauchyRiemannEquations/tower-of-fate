@@ -89,6 +89,11 @@ export function HUD() {
         <div className="risk-label-row">
           <span className="risk-label">붕괴 위험</span>
           {risk && (
+            <span className={`fate-readout ${risk.perfect ? 'hit' : ''}`}>
+              {risk.perfect ? '표식 적중 · PERFECT' : '황금 표식을 노리세요'}
+            </span>
+          )}
+          {risk && (
             <span className="risk-factors-inline">
               {risk.factors.slice(0, 2).map((f, i) => (
                 <span

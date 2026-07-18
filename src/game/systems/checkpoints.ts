@@ -57,7 +57,7 @@ export const PATH_SPECS: Record<PathId, PathSpec> = {
   balance: {
     id: 'balance',
     name: '균형 설계자의 길',
-    desc: 'PERFECT 판정 범위 확대, 좌우 교차 배치 점수 +10%',
+    desc: '운명의 표식 판정 범위 확대, 좌우 교차 배치 점수 +10%',
     deckAdds: [],
     rerollGain: 0,
     peekGain: 0,

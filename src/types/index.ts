@@ -29,6 +29,7 @@ export interface RiskFactor {
 export interface RiskBreakdown {
   total: number;
   factors: RiskFactor[];
+  /** 운명의 표식 적중 여부. 안전한 중심 배치와는 별개다. */
   perfect: boolean;
 }
 
@@ -165,6 +166,8 @@ export interface GameState {
   offers: BlockTypeId[];
   selected: BlockTypeId | null;
   aimRisk: RiskBreakdown | null;
+  /** 탑 기준 x 좌표로 표시되는 이번 턴의 운명의 표식 */
+  fateTargetX: number;
   combo: number;
   stats: RunStats;
   soundOn: boolean;

@@ -29,6 +29,7 @@ export function initialState(): GameState {
     offers: [],
     selected: null,
     aimRisk: null,
+    fateTargetX: 0,
     combo: 0,
     stats: {
       perfects: 0,

@@ -279,7 +279,12 @@ export class TowerScene extends Phaser.Scene {
 
       if (this.aimDirty) {
         this.aimDirty = false;
-        this.currentBreakdown = computeRisk(this.aimDef, this.aimX, getRiskMods());
+        this.currentBreakdown = computeRisk(
+          this.aimDef,
+          this.aimX,
+          getRiskMods(),
+          store.getState().fateTargetX,
+        );
         actions.setAimRisk(this.currentBreakdown);
         this.drawGuide(this.currentBreakdown);
       }
@@ -295,6 +300,7 @@ export class TowerScene extends Phaser.Scene {
     const landingBottom = D.groundTop - tower.totalHeight();
     const gx = D.baseX + this.aimX;
     const color = riskColor(b.total);
+    const fateTargetX = D.baseX + store.getState().fateTargetX;
 
     // 낙하 가이드 점선
     const topY = this.aimBaseY() + 8;
@@ -318,6 +324,30 @@ export class TowerScene extends Phaser.Scene {
     g.fillRect(supportCx - zoneHalf, landingBottom - 3, zoneHalf * 2, 6);
     g.fillStyle(0xffffff, 0.25);
     g.fillRect(supportCx - supportHalf, landingBottom - 1.5, supportHalf * 2, 3);
+
+    // 운명의 표식 — 안전 영역과 별개이며, 맞히면 PERFECT와 콤보를 얻는다.
+    const fateColor = b.perfect ? 0x7effc9 : 0xffd23c;
+    g.lineStyle(b.perfect ? 4 : 3, fateColor, b.perfect ? 1 : 0.9);
+    g.strokeCircle(fateTargetX, landingBottom - 7, b.perfect ? 13 : 11);
+    g.lineStyle(2, fateColor, 0.32);
+    g.lineBetween(fateTargetX, landingBottom - 58, fateTargetX, landingBottom - 18);
+    g.fillStyle(fateColor, 0.95);
+    g.fillTriangle(
+      fateTargetX,
+      landingBottom - 17,
+      fateTargetX + 8,
+      landingBottom - 7,
+      fateTargetX,
+      landingBottom + 3,
+    );
+    g.fillTriangle(
+      fateTargetX,
+      landingBottom - 17,
+      fateTargetX - 8,
+      landingBottom - 7,
+      fateTargetX,
+      landingBottom + 3,
+    );
 
     // 무게중심 마커 (받침대 위 다이아몬드)
     const com = tower.comX({ def, x: this.aimX });
@@ -362,7 +392,13 @@ export class TowerScene extends Phaser.Scene {
   private doDrop() {
     if (!this.aimSprite || !this.aimDef) return;
     const breakdown =
-      this.currentBreakdown ?? computeRisk(this.aimDef, this.aimX, getRiskMods());
+      this.currentBreakdown ??
+      computeRisk(
+        this.aimDef,
+        this.aimX,
+        getRiskMods(),
+        store.getState().fateTargetX,
+      );
     this.guide.clear();
 
     const landingBottom = D.groundTop - tower.totalHeight();

@@ -161,6 +161,25 @@ button {
   letter-spacing: 0.06em;
 }
 
+.fate-readout {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #ffe98a;
+  border: 1px solid rgba(255, 210, 60, 0.38);
+  background: rgba(255, 210, 60, 0.1);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.fate-readout.hit {
+  color: #7effd9;
+  border-color: rgba(53, 224, 201, 0.6);
+  background: rgba(53, 224, 201, 0.16);
+  box-shadow: 0 0 12px rgba(53, 224, 201, 0.2);
+}
+
 .risk-pct {
   font-size: 18px;
   font-weight: 900;

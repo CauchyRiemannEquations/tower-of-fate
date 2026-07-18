@@ -33,9 +33,9 @@ export function TutorialOverlay() {
       <div className="tutorial tutorial-drag">
         <div className="tut-bubble">
           <span className="tut-step">2 / 3</span>
-          좌우로 드래그해 붕괴 위험을 줄이고,
+          가운데는 안전하지만 황금 표식을 맞히면
           <br />
-          버튼이나 아래 스와이프로 떨어뜨리세요
+          PERFECT와 콤보! 드래그한 뒤 떨어뜨리세요
         </div>
         <TapDot variant="slide" />
       </div>

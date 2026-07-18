@@ -75,14 +75,25 @@ describe('붕괴 위험 계산', () => {
     ).toBe(BALANCE.effects.greedFlatRisk);
   });
 
-  it('균형 설계자: PERFECT 판정 범위가 넓어진다', () => {
+  it('안전한 중심과 운명의 표식 PERFECT는 서로 다른 판정이다', () => {
     tower.add(BLOCKS.wood, 0);
-    const offset = BALANCE.risk.perfectPx + 2;
-    const plain = computeRisk(BLOCKS.wood, offset, neutralRiskMods());
+    const target = 30;
+    const center = computeRisk(BLOCKS.wood, 0, neutralRiskMods(), target);
+    const hit = computeRisk(BLOCKS.wood, target, neutralRiskMods(), target);
+    expect(center.perfect).toBe(false);
+    expect(hit.perfect).toBe(true);
+    expect(center.total).toBeLessThan(hit.total);
+  });
+
+  it('균형 설계자: 운명의 표식 PERFECT 판정 범위가 넓어진다', () => {
+    tower.add(BLOCKS.wood, 0);
+    const target = 30;
+    const offset = target + BALANCE.fate.targetPx + 2;
+    const plain = computeRisk(BLOCKS.wood, offset, neutralRiskMods(), target);
     expect(plain.perfect).toBe(false);
     const fx = initialEffects();
     fx.paths.push('balance');
-    const wide = computeRisk(BLOCKS.wood, offset, buildRiskMods(fx));
+    const wide = computeRisk(BLOCKS.wood, offset, buildRiskMods(fx), target);
     expect(wide.perfect).toBe(true);
   });
 

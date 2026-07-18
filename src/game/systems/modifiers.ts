@@ -23,7 +23,7 @@ export interface RiskMods {
   oppositeSideBonus: number;
   /** 직전 배치가 탑 중심 기준 어느 쪽이었는지 (-1/0/1) */
   prevSide: -1 | 0 | 1;
-  /** PERFECT 판정 픽셀 범위 */
+  /** 운명의 표식 PERFECT 판정 픽셀 범위 */
   perfectPx: number;
   /** 다음 유리/금괴 배치 위험 감소 (정밀공학자 보상, 1회성) */
   highValueCut: number;
@@ -89,7 +89,7 @@ export function buildRiskMods(fx: RunEffects): RiskMods {
     oppositeSideBonus: has('scales') ? E.scalesOppositeBonus : 0,
     prevSide: fx.prevSide,
     perfectPx:
-      BALANCE.risk.perfectPx + (onPath('balance') ? E.balancePerfectPx : 0),
+      BALANCE.fate.targetPx + (onPath('balance') ? E.balancePerfectPx : 0),
     highValueCut: fx.buffHighValueCut ? E.buffHighValueCut : 0,
     glassOnGlassExtra: onPath('glass') ? E.glassOnGlassExtra : 0,
   };
