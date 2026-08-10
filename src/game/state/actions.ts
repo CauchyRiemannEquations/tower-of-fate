@@ -1,57 +1,38 @@
 import type {
   BlockTypeId,
-  CheckpointOption,
-  ContractId,
   JudgeResult,
-  PathId,
-  RelicId,
   RiskBreakdown,
+  RunMode,
 } from '../../types';
 import { BLOCKS } from '../config/blocks';
 import { BALANCE, LS_KEYS } from '../config/balance';
 import { tower } from '../systems/tower';
-import { judgeCollapse, type FairnessState } from '../systems/rng';
+import {
+  FateBag,
+  hashSeed,
+  judgeCollapse,
+  mulberry32,
+  todayKey,
+  todayLabel,
+  type FairnessState,
+  type Rng,
+} from '../systems/rng';
 import { checkpointFraction, computeGain } from '../systems/scoring';
-import { placementSide } from '../systems/risk';
-import {
-  buildInitialDeck,
-  drawHand,
-  discardCards,
-  addCards,
-  deckView,
-  type DeckState,
-} from '../systems/deck';
-import {
-  buildRiskMods,
-  buildScoreMods,
-  initialEffects,
-  type RunEffects,
-  type RiskMods,
-} from '../systems/modifiers';
-import {
-  advanceContract,
-  contractView,
-  offerContracts,
-  startContract,
-  type ActiveContract,
-} from '../systems/contracts';
-import {
-  MAX_RELICS,
-  offerCheckpointOptions,
-  PATH_SPECS,
-  RELIC_SPECS,
-} from '../systems/checkpoints';
+import { drawOffers } from '../systems/offers';
 import { recordRun } from '../systems/analytics';
 import { gameEvents, store, initialState } from './store';
 import { sfx } from '../../utils/sound';
 
 // ── 한 판 동안 유지되는 런타임 상태 (스토어에는 뷰만 투영) ──
 
-let deck: DeckState = { drawPile: [], discardPile: [] };
-let effects: RunEffects = initialEffects();
-let activeContract: ActiveContract | null = null;
-let rerolls = 0;
-let insuranceUsed = false;
+/**
+ * 판의 흐름 난수 — 선택지와 운명의 표식에 쓰인다.
+ * 오늘의 운명 모드에서는 날짜 시드로 고정되어 모두가 같은
+ * 블록 순서를 받는다. 붕괴 판정 난수(fateBag)는 언제나 별도의
+ * 비시드 난수라 결과까지 정해지는 일은 없다.
+ */
+let flowRng: Rng = Math.random;
+let fateBag = new FateBag();
 let fairness: FairnessState = { shieldUsed: false };
 let toastId = 0;
 /** 운명의 표식은 좌우를 번갈아 가며 제안한다. */
@@ -111,99 +92,26 @@ function createFateTarget(combo: number): number {
   return x;
 }
 
-/** 예언자의 길/렌즈 보유 시 다음 카드 1장을 미리 보여준다 */
-function peekCount(): number {
-  return effects.paths.includes('prophet') || effects.relics.includes('lens')
-    ? 1
-    : 0;
-}
-
-/** 런타임 상태를 스토어 뷰로 동기화 */
-function syncSystems() {
-  store.setState({
-    deck: deckView(deck, peekCount()),
-    rerolls,
-    contract:
-      activeContract && activeContract.status === 'active'
-        ? contractView(activeContract)
-        : null,
-    paths: [...effects.paths],
-    relics: [...effects.relics],
-  });
-}
-
-/** TowerScene이 조준 위험 계산에 쓰는 현재 수정자 */
-export function getRiskMods(): RiskMods {
-  return buildRiskMods(effects);
-}
-
-/** 계약 실행 가능성 판단용: 덱·버림·선택지에 존재하는 블록 종류 수 */
-function availableTypeCount(): number {
-  const types = new Set<BlockTypeId>([
-    ...deck.drawPile,
-    ...deck.discardPile,
-    ...store.getState().offers,
-  ]);
-  return types.size;
-}
-
-/**
- * 체크포인트의 두 번째 단계로 계약을 제안한다.
- * 이미 진행 중인 계약이 있으면 건너뛴다.
- */
-function offerContractStep(): boolean {
-  if (activeContract && activeContract.status === 'active') return false;
-  store.setState({
-    phase: 'contract',
-    contractOffers: offerContracts(availableTypeCount()),
-  });
-  return true;
-}
-
-function applyContractReward(id: ContractId) {
-  const E = BALANCE.effects;
-  const dur = BALANCE.contracts.buffDuration;
-  switch (id) {
-    case 'balance':
-      effects.buffTiltTurns = dur;
-      showToast('계약 성공! 기울기 위험 절반 (5회)');
-      break;
-    case 'greed':
-      effects.buffGreedTurns = dur;
-      showToast('계약 성공! 고위험 배율 +0.3 (5회)');
-      break;
-    case 'materials':
-      rerolls += 1;
-      showToast('계약 성공! 리롤 +1');
-      break;
-    case 'engineer':
-      effects.buffHighValueCut = true;
-      showToast('계약 성공! 다음 유리/금괴 위험 -10%');
-      break;
-    case 'symmetry': {
-      const s = store.getState();
-      store.setState({ tower: s.tower + E.symmetryInstantScore });
-      effects.buffTiltTurns = dur;
-      showToast(`계약 성공! +${E.symmetryInstantScore}점, 기울기 위험 절반`);
-      break;
-    }
-  }
-  sfx.checkpoint();
-}
-
 export const actions = {
-  startGame() {
+  /**
+   * 새 판 시작. mode를 생략하면 직전 판과 같은 모드로 시작한다.
+   * 오늘의 운명: 날짜 시드로 선택지 순서가 고정된 하루 한 판의 도전.
+   */
+  startGame(mode?: RunMode) {
+    const prev = store.getState();
+    const runMode: RunMode = mode ?? prev.mode;
+
     tower.reset();
     fairness = { shieldUsed: false };
-    deck = buildInitialDeck();
-    effects = initialEffects();
-    activeContract = null;
-    rerolls = 0;
-    insuranceUsed = false;
-    nextFateSide = Math.random() < 0.5 ? -1 : 1;
+    fateBag = new FateBag();
+    if (runMode === 'daily') {
+      flowRng = mulberry32(hashSeed(`tower-of-fate:${todayKey()}`));
+    } else {
+      flowRng = Math.random;
+    }
+    nextFateSide = flowRng() < 0.5 ? -1 : 1;
     const fateTarget = createFateTarget(0);
 
-    const prev = store.getState();
     let tutorialStep = -1;
     try {
       if (!localStorage.getItem(LS_KEYS.tutorial)) tutorialStep = 0;
@@ -215,14 +123,15 @@ export const actions = {
       best: prev.best,
       soundOn: prev.soundOn,
       phase: 'choosing',
-      offers: drawHand(deck, Math.random, {
-        guaranteeSafe: BALANCE.deck.safeFirstHand,
+      mode: runMode,
+      dailyLabel: runMode === 'daily' ? todayLabel() : '',
+      offers: drawOffers(flowRng, {
+        guaranteeSafe: BALANCE.offers.safeFirstHand,
       }),
       fateTargetX: fateTarget,
       tutorialStep,
       tutorialReplay: tutorialFromMenu,
     });
-    syncSystems();
     gameEvents.emit('reset');
   },
 
@@ -245,7 +154,7 @@ export const actions = {
       /* noop */
     }
     tutorialFromMenu = true;
-    actions.startGame();
+    actions.startGame('free');
   },
 
   selectBlock(id: BlockTypeId) {
@@ -259,19 +168,6 @@ export const actions = {
       tutorialStep: s.tutorialStep === 0 ? 1 : s.tutorialStep,
     });
     gameEvents.emit('spawn', id);
-  },
-
-  /** 리롤 — 현재 선택지를 버리고 새로  3장 */
-  reroll() {
-    const s = store.getState();
-    if (s.phase !== 'choosing') return;
-    if (rerolls <= 0) return;
-    rerolls -= 1;
-    discardCards(deck, s.offers);
-    const offers = drawHand(deck);
-    sfx.whoosh();
-    store.setState({ offers });
-    syncSystems();
   },
 
   /** Phaser가 조준 중 실시간으로 호출 */
@@ -291,7 +187,7 @@ export const actions = {
   },
 
   /**
-   * Phaser가 블록 착지 직후 호출. 판정·점수·계약·덱 처리를 수행하고
+   * Phaser가 블록 착지 직후 호출. 판정·점수 처리를 수행하고
    * 결과에 따라 'survived' 또는 'collapse' 이벤트를 발행한다.
    */
   resolvePlacement(breakdown: RiskBreakdown, x: number) {
@@ -300,40 +196,32 @@ export const actions = {
     if (!id) return;
     const def = BLOCKS[id];
 
-    const side = placementSide(x);
-    const offset = x - (tower.blocks[0]?.x ?? 0);
-
     tower.add(def, x);
     const floor = tower.blocks.length;
 
-    // ── 덱 처리: 배치 카드는 탑이 되고, 남은 선택지는 버림 더미로 ──
-    const rest = [...s.offers];
-    const restIdx = rest.indexOf(id);
-    if (restIdx >= 0) rest.splice(restIdx, 1);
-    discardCards(deck, rest);
-
-    // ── 붕괴 판정 (표시 확률 그대로 사용) ──
-    const outcome = judgeCollapse(breakdown.total, floor, fairness);
+    // ── 붕괴 판정 (표시 확률 그대로, 층화 난수로 극단 연속 방지) ──
+    const outcome = judgeCollapse(breakdown.total, floor, fairness, () =>
+      fateBag.next(),
+    );
     store.setState({
       debug: {
         lastRoll: outcome.roll,
         lastEffective: outcome.effective,
         comOffset: tower.comX() - (tower.blocks[0]?.x ?? 0),
+        worstOverhang: tower.worstOverhang(),
       },
     });
 
-    // 점수는 생존/붕괴 무관하게 산출해 분석서(기대값)에 기록
+    // 점수는 생존/붕괴 무관하게 산출해 분석서(기대값)에 기록.
     // 가운데 정렬과 별개로 운명의 표식을 맞힌 경우에만 콤보가 이어진다.
     const perfect = breakdown.perfect;
     const combo = perfect ? s.combo + 1 : 0;
-    const scoreMods = buildScoreMods(effects);
     const gained = computeGain({
       def,
       riskPct: breakdown.total,
       perfect,
       combo,
-      side,
-      mods: scoreMods,
+      stake: s.tower,
     });
 
     const runLog = [
@@ -347,21 +235,10 @@ export const actions = {
     ];
 
     if (outcome.collapsed) {
-      // 운명의 보험증서: 한 번, 탑 위 점수 절반 보존
-      let vault = s.vault;
-      if (effects.relics.includes('insurance') && !insuranceUsed) {
-        insuranceUsed = true;
-        const kept = Math.round(s.tower * BALANCE.effects.insuranceKeep);
-        if (kept > 0) {
-          vault += kept;
-          showToast(`보험증서 발동! ${kept}점 보존`);
-        }
-      }
       const stats = { ...s.stats, maxFloor: Math.max(s.stats.maxFloor, floor) };
       store.setState({
         phase: 'collapsing',
         floor,
-        vault,
         stats,
         aimRisk: null,
         runLog,
@@ -376,39 +253,9 @@ export const actions = {
     let towerScore = s.tower + gained;
     let vault = s.vault;
 
-    // 효과 상태 갱신 (점수 산출 후)
-    if (effects.buffTiltTurns > 0) effects.buffTiltTurns -= 1;
-    if (effects.buffGreedTurns > 0) effects.buffGreedTurns -= 1;
-    if (effects.buffHighValueCut && (def.fragile || def.id === 'gold')) {
-      effects.buffHighValueCut = false;
-    }
-    effects.prevSide = side;
-    effects.glassStreak = def.fragile ? effects.glassStreak + 1 : 0;
-
-    // ── 계약 진행 ──
-    if (activeContract && activeContract.status === 'active') {
-      activeContract = advanceContract(activeContract, {
-        blockId: id,
-        side,
-        offset,
-        risk: breakdown.total,
-        perfect,
-      });
-      if (activeContract.status === 'success') {
-        applyContractReward(activeContract.id);
-        gameEvents.emit('contractResult', true);
-        activeContract = null;
-      } else if (activeContract.status === 'failed') {
-        showToast('계약이 조용히 만료되었다…');
-        gameEvents.emit('contractResult', false);
-        activeContract = null;
-      }
-    }
-
     // ── 체크포인트 자동 저장 ──
     const frac = checkpointFraction(floor);
-    const isCheckpoint = frac > 0;
-    if (isCheckpoint) {
+    if (frac > 0) {
       const banked = Math.round(towerScore * frac);
       towerScore -= banked;
       vault += banked;
@@ -438,21 +285,8 @@ export const actions = {
       risk: breakdown.total,
     };
 
-    // 다음 손패는 즉시 드로우 (모달은 그 위에 뜬다)
-    const offers = drawHand(deck);
-    const nextFateTarget = createFateTarget(combo);
-
-    // ── 다음 단계: 체크포인트면 선택 모달(효과 → 계약), 아니면 일반 진행 ──
-    let phase: 'choosing' | 'checkpoint' = 'choosing';
-    let checkpointOffers = null as CheckpointOption[] | null;
-
-    if (isCheckpoint) {
-      phase = 'checkpoint';
-      checkpointOffers = offerCheckpointOptions(effects.paths, effects.relics);
-    }
-
     store.setState({
-      phase,
+      phase: 'choosing',
       floor,
       tower: towerScore,
       vault,
@@ -461,68 +295,12 @@ export const actions = {
       lastJudge: judge,
       selected: null,
       aimRisk: null,
-      fateTargetX: nextFateTarget,
-      offers,
+      fateTargetX: createFateTarget(combo),
+      offers: drawOffers(flowRng),
       runLog,
-      contractOffers: null,
-      checkpointOffers,
     });
-    syncSystems();
 
     gameEvents.emit('survived', judge);
-  },
-
-  /** 계약 선택 (체크포인트 2단계) */
-  chooseContract(id: ContractId) {
-    const s = store.getState();
-    if (s.phase !== 'contract') return;
-    activeContract = startContract(id);
-    sfx.select();
-    store.setState({ phase: 'choosing', contractOffers: null });
-    syncSystems();
-  },
-
-  skipContract() {
-    if (store.getState().phase !== 'contract') return;
-    store.setState({ phase: 'choosing', contractOffers: null });
-  },
-
-  /** 체크포인트 1단계: 길/유물 선택 → 이어서 계약 제안 */
-  chooseCheckpoint(option: CheckpointOption) {
-    const s = store.getState();
-    if (s.phase !== 'checkpoint') return;
-
-    if (option.kind === 'path') {
-      const spec = PATH_SPECS[option.id as PathId];
-      if (!effects.paths.includes(spec.id)) {
-        effects.paths.push(spec.id);
-        if (spec.deckAdds.length > 0) {
-          addCards(deck, [...spec.deckAdds]);
-        }
-        rerolls += spec.rerollGain;
-        showToast(`${spec.name} 선택!`);
-      }
-    } else {
-      const spec = RELIC_SPECS[option.id as RelicId];
-      if (
-        !effects.relics.includes(spec.id) &&
-        effects.relics.length < MAX_RELICS
-      ) {
-        effects.relics.push(spec.id);
-        rerolls += spec.rerollGain;
-        showToast(`유물 획득: ${spec.name}`);
-      }
-    }
-    sfx.checkpoint();
-    store.setState({ phase: 'choosing', checkpointOffers: null });
-    syncSystems();
-    offerContractStep();
-  },
-
-  skipCheckpoint() {
-    if (store.getState().phase !== 'checkpoint') return;
-    store.setState({ phase: 'choosing', checkpointOffers: null });
-    offerContractStep();
   },
 
   /** Phaser 붕괴 애니메이션 종료 후 호출 */
@@ -548,11 +326,7 @@ export const actions = {
     const s = store.getState();
     if (s.phase !== 'choosing' && s.phase !== 'aiming') return;
     if (s.tower <= 0 && s.vault <= 0) return;
-    let finalScore = s.vault + s.tower;
-    // 황금 계약서: 확정 보너스
-    if (effects.relics.includes('goldenSeal')) {
-      finalScore = Math.round(finalScore * (1 + BALANCE.effects.goldenSealBonus));
-    }
+    const finalScore = s.vault + s.tower;
     const newBest = saveBest(finalScore);
     recordRun(s.runLog);
     sfx.bank();

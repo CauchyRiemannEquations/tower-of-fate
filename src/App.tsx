@@ -4,9 +4,6 @@ import { useGameStore } from './hooks/useGameStore';
 import { HUD } from './components/HUD';
 import { BlockCards } from './components/BlockCards';
 import { Controls } from './components/Controls';
-import { TurnAids } from './components/TurnAids';
-import { ContractModal } from './components/ContractModal';
-import { CheckpointModal } from './components/CheckpointModal';
 import { MenuScreen } from './components/MenuScreen';
 import { GameOverScreen } from './components/GameOverScreen';
 import { TutorialOverlay } from './components/TutorialOverlay';
@@ -27,9 +24,7 @@ export default function App() {
     state.phase === 'choosing' ||
     state.phase === 'aiming' ||
     state.phase === 'dropping' ||
-    state.phase === 'collapsing' ||
-    state.phase === 'contract' ||
-    state.phase === 'checkpoint';
+    state.phase === 'collapsing';
 
   return (
     <div className="app">
@@ -38,15 +33,12 @@ export default function App() {
         {inRun && <HUD />}
         {inRun && (
           <div className="bottom-panel">
-            <TurnAids />
             <BlockCards />
             <Controls />
           </div>
         )}
         {state.phase === 'menu' && <MenuScreen />}
         {state.phase === 'gameover' && <GameOverScreen />}
-        <ContractModal />
-        <CheckpointModal />
         <TutorialOverlay />
         <Toast />
         {DEBUG && <DebugPanel />}

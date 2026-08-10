@@ -1,14 +1,22 @@
 import type { BlockDef } from '../../types';
 import { BALANCE } from '../config/balance';
-import { neutralScoreMods, type ScoreMods } from './modifiers';
 
-/** 고위험 생존 보너스 기본 배율 */
-export function riskMultiplier(riskPct: number): number {
+/**
+ * 점수 모델 — "한 층 더 vs 지금 탈출"이 기대값 문제가 되도록 설계.
+ *
+ * 획득 점수 = 블록 점수 × (1 + riskBoost × p)
+ *          + 걸린 점수(stake) × min(oddsCap, p/(1−p)) × payoutEdge
+ *
+ * p/(1−p)는 붕괴 확률 p의 공정 배당률이다. payoutEdge < 1 이므로
+ * 위험 배치의 스테이크 기대 손실은 (1 − payoutEdge) × p × stake:
+ * 걸린 점수가 커질수록 한 층 더의 기대값이 서서히 나빠지고,
+ * 어느 순간 탈출이 수학적 정답이 된다. 그 지점을 읽는 것이 실력이다.
+ */
+
+/** 붕괴 확률 p(0~1)의 배당률 — 상한이 있는 p/(1−p) */
+export function riskOdds(p: number): number {
   const s = BALANCE.score;
-  if (riskPct >= 70) return s.mult70;
-  if (riskPct >= 50) return s.mult50;
-  if (riskPct >= 30) return s.mult30;
-  return 1;
+  return Math.min(s.oddsCap, p / Math.max(0.05, 1 - p));
 }
 
 export interface GainParams {
@@ -17,53 +25,49 @@ export interface GainParams {
   perfect: boolean;
   /** perfect 판정 이후의 콤보 수 (이번 것 포함) */
   combo: number;
-  /** 이번 배치의 탑 중심 기준 방향 */
-  side: -1 | 0 | 1;
-  mods?: ScoreMods;
+  /** 배치 시점에 탑 위에 걸려 있던 미확정 점수 */
+  stake: number;
 }
 
-/**
- * 블록 생존 시 획득 점수.
- * 배율 적용 순서: 기본 위험 배율 + 보너스 배율 → 기본 점수 배율(scoreScale)
- * → 유리 체인 → 교차 배치 보너스 → PERFECT/콤보 평탄 가산.
- */
+/** 블록 생존 시 획득 점수 */
 export function computeGain({
   def,
   riskPct,
   perfect,
   combo,
-  side,
-  mods = neutralScoreMods(),
+  stake,
 }: GainParams): number {
   const s = BALANCE.score;
-  const E = BALANCE.effects;
+  const p = riskPct / 100;
 
-  let mult = riskMultiplier(riskPct);
-  if (riskPct >= 30) mult += mods.riskMultBonus;
-  if (riskPct >= 50) mult += mods.diceBonus;
+  // PERFECT 콤보는 하우스 엣지를 깎는다 (edgeCap 미만 유지)
+  const edge = Math.min(
+    s.edgeCap,
+    s.payoutEdge + (perfect ? combo : 0) * s.comboEdgeStep,
+  );
 
-  let gained = Math.round(def.score * mult * mods.scoreScale);
-
-  // 유리 장인: 유리 연속 체인 (직전까지의 연속 수 기준, 최대 제한)
-  if (mods.glassChainOn && def.fragile && mods.glassStreak >= 1) {
-    const chain = Math.min(mods.glassStreak, E.glassChainMax);
-    gained = Math.round(gained * (1 + E.glassChainStep * chain));
-  }
-
-  // 균형 설계자: 좌우 교차 배치 보너스
-  if (
-    mods.alternateBonus &&
-    side !== 0 &&
-    mods.prevSide !== 0 &&
-    side === -mods.prevSide
-  ) {
-    gained = Math.round(gained * (1 + E.alternateScoreBonus));
-  }
+  let gained = Math.round(
+    def.score * (1 + s.riskBoost * p) * (perfect ? s.perfectMult : 1),
+  );
+  gained += Math.round(stake * riskOdds(p) * edge);
 
   if (perfect) {
-    gained += s.perfectFlat + Math.max(0, combo - 1) * mods.comboStep;
+    gained += s.perfectFlat + Math.max(0, combo - 1) * s.comboStep;
   }
   return gained;
+}
+
+/**
+ * 이 배치의 기대값 — 생존 시 gain을 얻고, 붕괴 시 stake를 잃는다.
+ * 조준 중 HUD에 그대로 표시된다.
+ */
+export function placementEV(
+  gain: number,
+  riskPct: number,
+  stake: number,
+): number {
+  const p = riskPct / 100;
+  return (1 - p) * gain - p * stake;
 }
 
 /** 체크포인트에서 자동 저장되는 비율. 해당 없으면 0. */

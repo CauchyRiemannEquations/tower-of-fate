@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { useGameStore } from '../hooks/useGameStore';
 import { actions } from '../game/state/actions';
-import { RELIC_SPECS } from '../game/systems/checkpoints';
+import { BLOCKS } from '../game/config/blocks';
+import { computeGain, placementEV } from '../game/systems/scoring';
 import {
   IcExit,
   IcFloor,
-  IcGem,
   IcLock,
-  IcScroll,
   IcSoundOff,
   IcSoundOn,
   IcSpark,
@@ -54,6 +53,20 @@ export function HUD() {
   const risk = s.aimRisk;
   const pct = risk?.total ?? null;
 
+  // 조준 중 실시간 기대값 — 성공 시 획득, 실패 시 잃는 점수, 그 기대값
+  const aimingDef = s.phase === 'aiming' && s.selected ? BLOCKS[s.selected] : null;
+  let evInfo: { gain: number; ev: number } | null = null;
+  if (risk && aimingDef) {
+    const gain = computeGain({
+      def: aimingDef,
+      riskPct: risk.total,
+      perfect: risk.perfect,
+      combo: risk.perfect ? s.combo + 1 : 0,
+      stake: s.tower,
+    });
+    evInfo = { gain, ev: placementEV(gain, risk.total, s.tower) };
+  }
+
   return (
     <div className="hud">
       <div className="hud-row">
@@ -69,6 +82,11 @@ export function HUD() {
           <IcSpark />
           {s.tower.toLocaleString()}
         </span>
+        {s.mode === 'daily' && (
+          <span className="chip daily-chip" title="모두가 같은 블록 순서를 받는 하루 한 번의 도전">
+            {s.dailyLabel}의 운명
+          </span>
+        )}
         <button
           className="icon-btn"
           onClick={actions.toggleSound}
@@ -110,24 +128,22 @@ export function HUD() {
         <div className="risk-bar-track">
           <div className="risk-bar-fill" style={{ width: `${pct ?? 0}%` }} />
         </div>
+        {evInfo && (
+          <div className="ev-row">
+            <span className="ev-item ev-gain">성공 +{evInfo.gain.toLocaleString()}</span>
+            {s.tower > 0 && (
+              <span className="ev-item ev-loss">실패 −{s.tower.toLocaleString()}</span>
+            )}
+            <span
+              className={`ev-item ev-value ${evInfo.ev >= 0 ? 'plus' : 'minus'}`}
+              title="기대값 = 생존 확률 × 획득 − 붕괴 확률 × 걸린 점수"
+            >
+              기대 {evInfo.ev >= 0 ? '+' : '−'}
+              {Math.abs(Math.round(evInfo.ev)).toLocaleString()}
+            </span>
+          </div>
+        )}
       </div>
-
-      {(s.contract || s.relics.length > 0) && (
-        <div className="hud-row hud-sub-row">
-          {s.contract && (
-            <span className="chip contract-chip" title={s.contract.desc}>
-              <IcScroll size={13} />
-              {s.contract.name} · {s.contract.progressText} · {s.contract.remaining}턴
-            </span>
-          )}
-          {s.relics.map((r) => (
-            <span key={r} className="chip relic-chip" title={RELIC_SPECS[r].desc}>
-              <IcGem size={12} />
-              {RELIC_SPECS[r].name}
-            </span>
-          ))}
-        </div>
-      )}
 
       {showExit && <ExitConfirm onClose={() => setShowExit(false)} />}
     </div>

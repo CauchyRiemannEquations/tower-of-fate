@@ -23,6 +23,7 @@ export interface TowerBlock {
 
 export interface RiskFactor {
   label: string;
+  /** 표시 위험(%)에 대한 이 요인의 기여분 (완화 요인은 음수) */
   delta: number;
 }
 
@@ -39,67 +40,10 @@ export type Phase =
   | 'aiming'
   | 'dropping'
   | 'collapsing'
-  | 'contract'
-  | 'checkpoint'
   | 'gameover';
 
-// ── 운명 덱 ─────────────────────────────────────────
-
-export interface DeckView {
-  drawCount: number;
-  discardCount: number;
-  /** 드로우 더미 기준 종류별 남은 수량 */
-  remainingByType: Record<BlockTypeId, number>;
-  /** 예언자의 길/렌즈 보유 시 미리 보이는 다음 카드들 */
-  upcoming: BlockTypeId[];
-}
-
-// ── 예언 계약 ───────────────────────────────────────
-
-export type ContractId =
-  | 'balance'
-  | 'greed'
-  | 'materials'
-  | 'engineer'
-  | 'symmetry';
-
-export interface ContractOfferView {
-  id: ContractId;
-  name: string;
-  desc: string;
-  reward: string;
-}
-
-export interface ContractView {
-  id: ContractId;
-  name: string;
-  desc: string;
-  progressText: string;
-  /** 계약 만료까지 남은 배치 수 */
-  remaining: number;
-}
-
-// ── 체크포인트 선택 ─────────────────────────────────
-
-export type PathId = 'stable' | 'greed' | 'glass' | 'balance' | 'prophet';
-
-export type RelicId =
-  | 'insurance'
-  | 'scales'
-  | 'dice'
-  | 'geometer'
-  | 'lens'
-  | 'hourglass'
-  | 'wedge'
-  | 'goldenSeal';
-
-export interface CheckpointOption {
-  kind: 'path' | 'relic';
-  id: PathId | RelicId;
-  name: string;
-  desc: string;
-  tradeoff?: string;
-}
+/** 일반 판 / 모두가 같은 블록 순서를 받는 오늘의 운명 */
+export type RunMode = 'free' | 'daily';
 
 // ── 운명 분석서 ─────────────────────────────────────
 
@@ -155,10 +99,15 @@ export interface DebugInfo {
   lastRoll: number;
   lastEffective: number;
   comOffset: number;
+  /** 층별 정역학 최악 오버행 비율 (1.0 = 받침 가장자리) */
+  worstOverhang: number;
 }
 
 export interface GameState {
   phase: Phase;
+  mode: RunMode;
+  /** 오늘의 운명 표시용 날짜 라벨 (예: "8월 10일") */
+  dailyLabel: string;
   floor: number;
   vault: number;
   tower: number;
@@ -179,14 +128,5 @@ export interface GameState {
   gameOver: GameOverInfo | null;
   lastJudge: JudgeResult | null;
   debug: DebugInfo;
-  // ── 확장 시스템 ──
-  deck: DeckView;
-  /** 남은 리롤 횟수 (모래시계/예언자의 길) */
-  rerolls: number;
-  contract: ContractView | null;
-  contractOffers: ContractOfferView[] | null;
-  checkpointOffers: CheckpointOption[] | null;
-  paths: PathId[];
-  relics: RelicId[];
   runLog: RiskAttempt[];
 }

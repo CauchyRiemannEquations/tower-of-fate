@@ -12,7 +12,7 @@ export const BLOCKS: Record<BlockTypeId, BlockDef> = {
     weight: 1,
     baseRisk: 4,
     score: 10,
-    desc: '넓고 가벼워 기반에 좋아요',
+    desc: '넓고 가벼워서 기반으로 좋아요',
   },
   stone: {
     id: 'stone',
@@ -22,7 +22,7 @@ export const BLOCKS: Record<BlockTypeId, BlockDef> = {
     weight: 3,
     baseRisk: 8,
     score: 25,
-    desc: '묵직해요. 좁은 곳 위험!',
+    desc: '묵직해서 좁은 받침 위에선 위험해요',
   },
   glass: {
     id: 'glass',
@@ -32,7 +32,7 @@ export const BLOCKS: Record<BlockTypeId, BlockDef> = {
     weight: 1,
     baseRisk: 12,
     score: 60,
-    desc: '높은 점수, 깨지기 쉬움',
+    desc: '점수는 높지만 깨지기 쉬워요',
     fragile: true,
   },
   gold: {
@@ -43,7 +43,7 @@ export const BLOCKS: Record<BlockTypeId, BlockDef> = {
     weight: 5,
     baseRisk: 16,
     score: 100,
-    desc: '최고 점수, 최고 위험',
+    desc: '가장 높은 점수, 가장 높은 위험이에요',
   },
   foundation: {
     id: 'foundation',

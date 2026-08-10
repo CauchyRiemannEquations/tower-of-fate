@@ -4,7 +4,7 @@ import { BLOCKS } from '../config/blocks';
 import { computeRisk } from '../systems/risk';
 import { tower } from '../systems/tower';
 import { gameEvents, store } from '../state/store';
-import { actions, getRiskMods } from '../state/actions';
+import { actions } from '../state/actions';
 import { generateAllTextures, blockTextureKey } from '../objects/textures';
 import { EffectPool } from '../effects/particles';
 import { sfx, unlockAudio } from '../../utils/sound';
@@ -292,7 +292,6 @@ export class TowerScene extends Phaser.Scene {
         this.currentBreakdown = computeRisk(
           this.aimDef,
           this.aimX,
-          getRiskMods(),
           store.getState().fateTargetX,
         );
         actions.setAimRisk(this.currentBreakdown);
@@ -382,9 +381,8 @@ export class TowerScene extends Phaser.Scene {
     this.drawIdleCom();
   }
 
-  /** 기하학자의 눈: 조준 전에도 탑 무게중심을 표시 */
+  /** 조준 전에도 탑의 무게중심을 항상 표시한다 */
   private drawIdleCom() {
-    if (!store.getState().relics.includes('geometer')) return;
     if (tower.blocks.length === 0) return;
     const g = this.guide;
     const com = tower.comX();
@@ -403,12 +401,7 @@ export class TowerScene extends Phaser.Scene {
     if (!this.aimSprite || !this.aimDef) return;
     const breakdown =
       this.currentBreakdown ??
-      computeRisk(
-        this.aimDef,
-        this.aimX,
-        getRiskMods(),
-        store.getState().fateTargetX,
-      );
+      computeRisk(this.aimDef, this.aimX, store.getState().fateTargetX);
     this.guide.clear();
 
     const landingBottom = D.groundTop - tower.totalHeight();
