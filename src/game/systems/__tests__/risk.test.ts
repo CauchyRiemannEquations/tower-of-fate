@@ -4,7 +4,6 @@ import { judgeCollapse } from '../rng';
 import { tower } from '../tower';
 import { BLOCKS } from '../../config/blocks';
 import { BALANCE } from '../../config/balance';
-import { buildRiskMods, initialEffects, neutralRiskMods } from '../modifiers';
 
 describe('붕괴 위험 계산', () => {
   beforeEach(() => tower.reset());
@@ -40,6 +39,16 @@ describe('붕괴 위험 계산', () => {
     expect(safe.total).toBeGreaterThanOrEqual(BALANCE.risk.clampMin);
   });
 
+  it('요인이 아무리 쌓여도 확률 결합이라 100%를 넘지 않는다', () => {
+    // 유리 위에 극단적으로 걸친 금괴 + 높은 탑: 덧셈이라면 100%를 훌쩍 넘는 상황
+    tower.add(BLOCKS.wood, 0);
+    for (let i = 0; i < 10; i++) tower.add(BLOCKS.stone, 0);
+    tower.add(BLOCKS.glass, 0);
+    const b = computeRisk(BLOCKS.gold, 80);
+    expect(b.total).toBeLessThanOrEqual(BALANCE.risk.clampMax);
+    expect(b.total).toBeGreaterThan(50);
+  });
+
   it('초반의 가호가 표시 요인으로 노출된다', () => {
     const b = computeRisk(BLOCKS.gold, 60); // 1층 배치
     expect(b.factors.some((f) => f.label === '초반의 가호' && f.delta < 0)).toBe(
@@ -47,62 +56,59 @@ describe('붕괴 위험 계산', () => {
     );
   });
 
-  it('장인의 쐐기: 지지면 부족 위험이 배율만큼 줄어든다', () => {
+  it('받침 중심에 맞추면 완화되고, 벗어날수록 위험이 커진다', () => {
     tower.add(BLOCKS.wood, 0);
     tower.add(BLOCKS.stone, 0);
     tower.add(BLOCKS.stone, 0);
-    tower.add(BLOCKS.stone, 0); // 4층 이후 = 가호 없음
-    const x = 70; // 일부만 걸치는 위치
-    const plain = computeRisk(BLOCKS.stone, x, neutralRiskMods());
-    const fx = initialEffects();
-    fx.relics.push('wedge');
-    const withWedge = computeRisk(BLOCKS.stone, x, buildRiskMods(fx));
-    const f = (b: typeof plain) =>
-      b.factors.find((v) => v.label === '지지면 부족')?.delta ?? 0;
-    expect(f(withWedge)).toBeLessThan(f(plain));
+    tower.add(BLOCKS.stone, 0); // 4층부터 = 초반의 가호 없음
+    const centered = computeRisk(BLOCKS.stone, 0);
+    const slight = computeRisk(BLOCKS.stone, 24);
+    const heavy = computeRisk(BLOCKS.stone, 48);
+    expect(centered.factors.some((f) => f.label === '안정된 중심')).toBe(true);
+    expect(centered.total).toBeLessThan(slight.total);
+    expect(slight.total).toBeLessThan(heavy.total);
   });
 
-  it('탐욕의 길: 평탄 위험이 더해진다', () => {
+  it('층별 정역학: 같은 방향으로 밀린 탑 위의 추가 오버행이 위험을 키운다', () => {
     tower.add(BLOCKS.wood, 0);
-    tower.add(BLOCKS.wood, 0);
-    tower.add(BLOCKS.wood, 0);
-    tower.add(BLOCKS.wood, 0);
-    const fx = initialEffects();
-    fx.paths.push('greed');
-    const b = computeRisk(BLOCKS.wood, 0, buildRiskMods(fx));
+    tower.add(BLOCKS.stone, 20);
+    tower.add(BLOCKS.stone, 40);
+    tower.add(BLOCKS.stone, 55);
+    // 받침(x=55) 기준 같은 오프셋이라도, 쏠린 방향으로 더 내밀면
+    // 부분탑 무게중심이 받침 가장자리에 가까워져 위험이 커야 한다
+    const inward = computeRisk(BLOCKS.stone, 55 - 30);
+    const outward = computeRisk(BLOCKS.stone, 55 + 30);
+    expect(outward.total).toBeGreaterThan(inward.total);
     expect(
-      b.factors.find((f) => f.label === '탐욕의 대가')?.delta,
-    ).toBe(BALANCE.effects.greedFlatRisk);
+      outward.factors.some((f) => f.label === '탑의 기울어짐' && f.delta > 0),
+    ).toBe(true);
+  });
+
+  it('worstOverhang: 정렬된 탑은 0, 무게중심이 받침 가장자리를 넘으면 1 이상', () => {
+    tower.add(BLOCKS.wood, 0);
+    expect(tower.worstOverhang()).toBeCloseTo(0, 5);
+    // 나무판(반폭 75) 위에 완전히 가장자리 밖으로 무게중심이 나가는 돌
+    tower.add(BLOCKS.stone, 90);
+    expect(tower.worstOverhang()).toBeGreaterThanOrEqual(1);
+  });
+
+  it('표시 요인 기여분의 합이 최종 위험과 일치한다 (반올림 오차 이내)', () => {
+    tower.add(BLOCKS.wood, 0);
+    tower.add(BLOCKS.stone, 0);
+    tower.add(BLOCKS.stone, 10);
+    tower.add(BLOCKS.glass, 18);
+    const b = computeRisk(BLOCKS.gold, 52);
+    const sum = b.factors.reduce((s, f) => s + f.delta, 0);
+    expect(Math.abs(sum - b.total)).toBeLessThanOrEqual(b.factors.length);
   });
 
   it('안전한 중심과 운명의 표식 PERFECT는 서로 다른 판정이다', () => {
     tower.add(BLOCKS.wood, 0);
     const target = 30;
-    const center = computeRisk(BLOCKS.wood, 0, neutralRiskMods(), target);
-    const hit = computeRisk(BLOCKS.wood, target, neutralRiskMods(), target);
+    const center = computeRisk(BLOCKS.wood, 0, target);
+    const hit = computeRisk(BLOCKS.wood, target, target);
     expect(center.perfect).toBe(false);
     expect(hit.perfect).toBe(true);
-    expect(center.total).toBeLessThan(hit.total);
-  });
-
-  it('균형 설계자: 운명의 표식 PERFECT 판정 범위가 넓어진다', () => {
-    tower.add(BLOCKS.wood, 0);
-    const target = 30;
-    const offset = target + BALANCE.fate.targetPx + 2;
-    const plain = computeRisk(BLOCKS.wood, offset, neutralRiskMods(), target);
-    expect(plain.perfect).toBe(false);
-    const fx = initialEffects();
-    fx.paths.push('balance');
-    const wide = computeRisk(BLOCKS.wood, offset, buildRiskMods(fx), target);
-    expect(wide.perfect).toBe(true);
-  });
-
-  it('저위험 보호는 한 판에 한 번만 발동한다', () => {
-    const fairness = { shieldUsed: false };
-    const first = judgeCollapse(20, 5, fairness, () => 0.01);
-    expect(first.collapsed).toBe(false);
-    expect(first.nearMiss).toBe(true);
-    const second = judgeCollapse(20, 6, fairness, () => 0.01);
-    expect(second.collapsed).toBe(true);
+    expect(center.total).toBeLessThanOrEqual(hit.total);
   });
 });

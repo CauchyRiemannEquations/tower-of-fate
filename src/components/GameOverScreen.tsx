@@ -57,7 +57,7 @@ export function GameOverScreen() {
         <FateReport />
 
         <div className="go-buttons">
-          <button className="btn btn-primary" onClick={actions.startGame}>
+          <button className="btn btn-primary" onClick={() => actions.startGame()}>
             <span className="btn-main">
               <IcRestart />
               다시 시작

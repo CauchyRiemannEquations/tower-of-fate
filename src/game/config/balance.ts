@@ -1,6 +1,7 @@
 /**
  * 게임 밸런스 전반의 수치를 모아둔 설정 파일.
  * 게임 감각을 조정할 때는 이 파일만 수정하면 된다.
+ * (요인별 근거 수치는 scripts/simulate.ts 시뮬레이터로 검증한다)
  */
 export const BALANCE = {
   /**
@@ -16,9 +17,9 @@ export const BALANCE = {
     groundWidth: 480,
   },
 
-  /** 운명 덱 — 한 판을 구성하는 블록 카드 수량 */
-  deck: {
-    composition: {
+  /** 매 턴 3개의 선택지를 만드는 블록 출현 가중치 */
+  offers: {
+    weights: {
       wood: 10,
       stone: 8,
       glass: 6,
@@ -27,55 +28,103 @@ export const BALANCE = {
     } as Record<string, number>,
     /** 첫 손패에 안전 블록(나무/기초석)을 최소 1장 보장 */
     safeFirstHand: true,
-    /** 덱+버림이 모두 부족할 때 채워 넣는 비상 카드 */
-    fallbackCard: 'wood',
   },
 
-  /** 예언 계약 — 체크포인트에서 효과 선택 후 이어서 제안된다 */
-  contracts: {
-    /** 계약이 적용되는 배치 수 */
-    duration: 3,
-    /** 보상 버프가 적용되는 배치 수 */
-    buffDuration: 5,
-  },
-
+  /**
+   * 붕괴 위험 모델.
+   *
+   * 위험 요인은 각각 "독립적인 붕괴 원인"의 확률(0~1)로 계산하고,
+   * 1 − ∏(1 − pᵢ) 로 결합한다 — 확률의 덧셈이 아니라 결합이므로
+   * 요인이 아무리 쌓여도 100%를 넘는 일이 없고, 큰 요인이 있을수록
+   * 작은 요인의 추가 영향이 자연히 줄어든다.
+   * 완화 요인(중심 배치·기초석·초반의 가호)은 결합된 위험에
+   * (1 − r) 배율로 곱해지고, 전 과정이 표시 요인으로 노출된다.
+   */
   risk: {
-    /** 이 픽셀 이내로 받침 중심을 맞추면 안정 보너스 */
+    /** 이 픽셀 이내로 받침 중심을 맞추면 "안정된 중심" 완화 */
     stableCenterPx: 8,
-    /** 치우침이 최대일 때 더해지는 위험 */
-    offsetMax: 22,
-    /** 지지면이 전혀 없을 때 더해지는 위험 */
-    supportMax: 38,
-    /** 무게중심 쏠림 최대 위험 */
-    comMax: 16,
-    /** 층당 높이 위험 */
-    heightPerFloor: 1.5,
-    /** 높이 위험이 붙기 시작하기 전 무료 층수 */
+    /** 치우침 비율이 1(받침 반폭만큼 치우침)일 때의 요인 확률 */
+    offsetMax: 0.26,
+    offsetPower: 1.4,
+    /** 지지면이 전혀 없을 때의 요인 확률 */
+    supportMax: 0.5,
+    supportPower: 1.2,
+    /**
+     * 층별 정역학(오버행) 요인 — 모든 층에 대해 "그 층 위 부분탑의
+     * 무게중심"이 받침 폭 대비 얼마나 밀려났는지 검사하고,
+     * 최악의 층을 위험으로 환산한다. 비율 1.0 = 무게중심이 받침
+     * 가장자리 바로 위 (실제 물리라면 전복 직전).
+     */
+    statics: {
+      /** 받침 반폭 대비 이 비율까지의 치우침은 무시 */
+      safeRatio: 0.35,
+      /** 비율 1.0(가장자리)일 때의 요인 확률 */
+      max: 0.6,
+      /** 요인 확률 상한 */
+      cap: 0.88,
+    },
+    /** 무게 요인: weight 3 이상부터 (weight − 2) × factor */
+    weightFactor: 0.02,
+    /** 유리 위에 무거운 블록 */
+    crushFragile: 0.12,
+    /** 유리 위 유리 */
+    glassOnGlass: 0.07,
+    /** 층당 높이 요인 확률 */
+    heightPerFloor: 0.01,
+    /** 높이 요인이 붙기 시작하기 전 무료 층수 */
     heightFreeFloors: 2,
-    foundationBonus: -7,
-    stableCenterBonus: -8,
-    centeredBonus: -4,
-    wideSupportBonus: -5,
-    clampMin: 2,
-    clampMax: 95,
+
+    // ── 완화 요인 (결합 위험에 곱해지는 감소율) ──
+    stableCenterRelief: 0.25,
+    wideSupportRelief: 0.12,
+    foundationRelief: 0.18,
+    /** 운명의 표식 적중 시 완화 — 표식은 운명이 지정한 지점이라
+     * 치우친 배치의 위험 일부를 상쇄한다 (중앙보다는 여전히 위험) */
+    fateRelief: 0.5,
     /**
      * 초반의 가호: 이 층수까지는 위험을 크게 낮춘다.
-     * 표시 확률과 판정 확률이 항상 같도록, 감소분은
-     * computeRisk의 요인("초반의 가호")으로 노출된다.
+     * 표시 확률과 판정 확률이 항상 같도록 표시 요인으로 노출된다.
      */
     earlyFloors: 3,
-    earlyFactor: 0.45,
-    /** 이 위험 미만에서의 첫 붕괴는 1회 보호(아슬아슬 연출) */
+    earlyRelief: 0.45,
+
+    clampMin: 2,
+    clampMax: 95,
+    /** 이 위험 미만에서의 첫 붕괴는 1회 보호 (아슬아슬 연출) */
     shieldBelow: 25,
+    /**
+     * 판정 난수의 층화 구간 수 — 난수를 N개 구간의 셔플 순서로 뽑아
+     * (각 난수는 여전히 정확한 균등분포) N번의 판정 안에서
+     * 극단적인 행운/불운의 연속을 막는다.
+     */
+    strata: 8,
   },
 
+  /**
+   * 점수 모델 — "한 층 더"가 기대값 문제가 되도록 설계한다.
+   *
+   * 획득 점수 = 블록 점수 × (1 + riskBoost × p)
+   *          + 걸린 점수(stake) × min(oddsCap, p/(1−p)) × payoutEdge
+   *
+   * p/(1−p)는 공정 배당률이고 payoutEdge(< 1)가 하우스 엣지다.
+   * 따라서 위험 배치의 기대 손실은 (1 − payoutEdge) × p × stake 로,
+   * 걸린 점수가 커질수록 기대값이 서서히 나빠진다 — 판이 깊어질수록
+   * "언제 멈출까"가 진짜 수학적 결정이 된다.
+   */
   score: {
-    /** 위험을 감수한 배치가 생존 기대값에서도 이득이 되도록 설정 */
-    mult30: 1.6,
-    mult50: 2.4,
-    mult70: 4.0,
+    riskBoost: 1.5,
+    payoutEdge: 0.9,
+    oddsCap: 8,
+    /** PERFECT는 블록 점수에 배율 (스테이크 배당에는 곱하지 않는다 —
+     * 곱하면 기대값이 항상 양수가 되어 영원히 도박하는 게 정답이 된다) */
+    perfectMult: 1.25,
     perfectFlat: 15,
     comboStep: 5,
+    /** PERFECT 콤보 1개당 하우스 엣지 완화 — 표식을 맞히는 실력이
+     * 스테이크 배당의 기대 손실을 직접 줄인다 */
+    comboEdgeStep: 0.015,
+    /** 엣지 상한 — 1 미만이어야 탈출 시점이 존재한다 */
+    edgeCap: 0.97,
   },
 
   /** 매 턴 좌우에 나타나는 고득점 목표인 운명의 표식 */
@@ -97,43 +146,6 @@ export const BALANCE = {
   checkpoints: {
     every: 5,
     fractions: [0.2, 0.3, 0.4],
-  },
-
-  /** 길·유물·계약 보상의 효과 수치 — 밸런스 조정은 여기서 */
-  effects: {
-    /** 안정의 길: 기본 점수 배율 */
-    stableScoreScale: 0.9,
-    /** 탐욕의 길: 매 배치 평탄 위험 증가 */
-    greedFlatRisk: 3,
-    /** 탐욕의 길: 30%+ 생존 배율 보너스 */
-    greedMultBonus: 0.2,
-    /** 유리 장인: 유리 연속 배치 점수 체인 (연속 1회당) */
-    glassChainStep: 0.5,
-    glassChainMax: 3,
-    /** 유리 장인: 유리 위 유리 추가 위험 */
-    glassOnGlassExtra: 4,
-    /** 균형 설계자: 운명의 표식 PERFECT 판정 범위 확대(px) */
-    balancePerfectPx: 3,
-    /** 균형 설계자: 좌우 교차 배치 점수 보너스 */
-    alternateScoreBonus: 0.1,
-    /** 균형의 저울: 반대편 배치 시 위험 감소 */
-    scalesOppositeBonus: -4,
-    /** 도박사의 주사위: 50%+ 생존 배율 보너스 */
-    diceMultBonus: 0.5,
-    /** 장인의 쐐기: 지지면 부족 위험 배율 */
-    wedgeSupportScale: 0.7,
-    /** 계약 보상: 기울기 위험 배율 */
-    buffTiltScale: 0.5,
-    /** 계약 보상: 30%+ 생존 배율 보너스 */
-    buffGreedMult: 0.3,
-    /** 계약 보상: 다음 유리/금괴 위험 감소 */
-    buffHighValueCut: 10,
-    /** 운명의 보험증서: 붕괴 시 보존 비율 */
-    insuranceKeep: 0.5,
-    /** 황금 계약서: 점수 확정 보너스 비율 */
-    goldenSealBonus: 0.15,
-    /** 대칭의 계약: 즉시 점수 */
-    symmetryInstantScore: 40,
   },
 
   aim: {

@@ -22,6 +22,8 @@ function loadSound(): boolean {
 export function initialState(): GameState {
   return {
     phase: 'menu',
+    mode: 'free',
+    dailyLabel: '',
     floor: 0,
     vault: 0,
     tower: 0,
@@ -45,19 +47,7 @@ export function initialState(): GameState {
     toast: null,
     gameOver: null,
     lastJudge: null,
-    debug: { lastRoll: -1, lastEffective: 0, comOffset: 0 },
-    deck: {
-      drawCount: 0,
-      discardCount: 0,
-      remainingByType: { wood: 0, stone: 0, glass: 0, gold: 0, foundation: 0 },
-      upcoming: [],
-    },
-    rerolls: 0,
-    contract: null,
-    contractOffers: null,
-    checkpointOffers: null,
-    paths: [],
-    relics: [],
+    debug: { lastRoll: -1, lastEffective: 0, comOffset: 0, worstOverhang: 0 },
     runLog: [],
   };
 }

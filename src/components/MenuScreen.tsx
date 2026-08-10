@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { actions } from '../game/state/actions';
 import { useGameStore } from '../hooks/useGameStore';
+import { todayLabel } from '../game/systems/rng';
 import { unlockAudio } from '../utils/sound';
 import { RankModal } from './RankModal';
-import { IcBook, IcPlay, IcSoundOff, IcSoundOn, IcTrophy } from './icons';
+import {
+  IcBook,
+  IcPlay,
+  IcSoundOff,
+  IcSoundOn,
+  IcSpark,
+  IcTrophy,
+} from './icons';
 
 export function MenuScreen() {
   const s = useGameStore();
@@ -33,13 +41,26 @@ export function MenuScreen() {
         className="btn btn-primary btn-lg"
         onClick={() => {
           unlockAudio();
-          actions.startGame();
+          actions.startGame('free');
         }}
       >
         <span className="btn-main">
           <IcPlay size={18} />
           게임 시작
         </span>
+      </button>
+      <button
+        className="btn btn-daily"
+        onClick={() => {
+          unlockAudio();
+          actions.startGame('daily');
+        }}
+      >
+        <span className="btn-main">
+          <IcSpark size={16} />
+          {todayLabel()}의 운명
+        </span>
+        <small>오늘은 모두가 같은 블록 순서를 받아요</small>
       </button>
       <div className="menu-sub-actions">
         <button className="btn btn-rank" onClick={() => setShowRank(true)}>

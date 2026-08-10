@@ -10,6 +10,7 @@ export function DebugPanel() {
       <div>roll: {s.debug.lastRoll >= 0 ? s.debug.lastRoll.toFixed(3) : '—'}</div>
       <div>eff: {s.debug.lastEffective.toFixed(3)}</div>
       <div>comOff: {s.debug.comOffset.toFixed(1)}</div>
+      <div>overhang: {s.debug.worstOverhang.toFixed(2)}</div>
       <div>combo: {s.combo}</div>
     </div>
   );
