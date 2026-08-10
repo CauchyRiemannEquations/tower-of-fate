@@ -147,11 +147,15 @@ export function HUD() {
       </div>
 
       {s.trial && (
-        <div className="hud-row trial-row">
-          <span className="chip trial-chip" title={s.trial.desc}>
-            <IcScroll size={13} />
-            {s.trial.name} · {s.trial.progressText} · {s.trial.remaining}턴
-          </span>
+        <div className="trial-panel">
+          <div className="trial-head">
+            <IcScroll size={14} />
+            <span className="trial-name">{s.trial.name}</span>
+            <span className="trial-progress">
+              {s.trial.progressText} · {s.trial.remaining}턴 남음
+            </span>
+          </div>
+          <div className="trial-desc">{s.trial.desc}</div>
         </div>
       )}
 
