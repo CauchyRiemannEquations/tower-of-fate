@@ -258,6 +258,23 @@ button {
   font-size: 12px;
 }
 
+/* 운명의 시험 칩 — 자동 등장하는 미니 도전 */
+.trial-row {
+  margin-top: 4px;
+}
+
+.trial-chip {
+  color: #ffd23c;
+  border-color: rgba(255, 210, 60, 0.45);
+  font-size: 12px;
+  animation: trial-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+@keyframes trial-in {
+  from { transform: translateY(-6px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
 @keyframes danger-pulse {
   0%, 100% { transform: translateX(0); box-shadow: 0 0 0 rgba(255, 77, 94, 0); }
   25% { transform: translateX(-1.5px); }

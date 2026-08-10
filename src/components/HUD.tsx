@@ -7,6 +7,7 @@ import {
   IcExit,
   IcFloor,
   IcLock,
+  IcScroll,
   IcSoundOff,
   IcSoundOn,
   IcSpark,
@@ -144,6 +145,15 @@ export function HUD() {
           </div>
         )}
       </div>
+
+      {s.trial && (
+        <div className="hud-row trial-row">
+          <span className="chip trial-chip" title={s.trial.desc}>
+            <IcScroll size={13} />
+            {s.trial.name} · {s.trial.progressText} · {s.trial.remaining}턴
+          </span>
+        </div>
+      )}
 
       {showExit && <ExitConfirm onClose={() => setShowExit(false)} />}
     </div>

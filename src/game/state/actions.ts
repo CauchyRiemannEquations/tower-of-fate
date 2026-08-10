@@ -19,6 +19,16 @@ import {
 } from '../systems/rng';
 import { checkpointFraction, computeGain } from '../systems/scoring';
 import { drawOffers } from '../systems/offers';
+import {
+  advanceTrial,
+  pickTrial,
+  startTrial,
+  trialReward,
+  trialView,
+  TRIAL_SPECS,
+  type ActiveTrial,
+  type TrialId,
+} from '../systems/trials';
 import { recordRun } from '../systems/analytics';
 import { gameEvents, store, initialState } from './store';
 import { sfx } from '../../utils/sound';
@@ -34,6 +44,10 @@ import { sfx } from '../../utils/sound';
 let flowRng: Rng = Math.random;
 let fateBag = new FateBag();
 let fairness: FairnessState = { shieldUsed: false };
+/** 운명의 시험 — 자동 등장, 선택 없음 */
+let activeTrial: ActiveTrial | null = null;
+let trialCooldown = 0;
+let lastTrialId: TrialId | null = null;
 let toastId = 0;
 /** 운명의 표식은 좌우를 번갈아 가며 제안한다. */
 let nextFateSide: -1 | 1 = 1;
@@ -104,6 +118,9 @@ export const actions = {
     tower.reset();
     fairness = { shieldUsed: false };
     fateBag = new FateBag();
+    activeTrial = null;
+    trialCooldown = 0;
+    lastTrialId = null;
     if (runMode === 'daily') {
       flowRng = mulberry32(hashSeed(`tower-of-fate:${todayKey()}`));
     } else {
@@ -253,6 +270,43 @@ export const actions = {
     let towerScore = s.tower + gained;
     let vault = s.vault;
 
+    // ── 운명의 시험 진행 (자동 등장·자동 판정) ──
+    const baseX = tower.blocks[0]?.x ?? 0;
+    const dxBase = x - baseX;
+    const side: -1 | 0 | 1 = Math.abs(dxBase) <= 4 ? 0 : dxBase > 0 ? 1 : -1;
+
+    if (activeTrial && activeTrial.status === 'active') {
+      activeTrial = advanceTrial(activeTrial, {
+        blockId: id,
+        side,
+        risk: breakdown.total,
+        perfect,
+      });
+      if (activeTrial.status === 'success') {
+        const bonus = trialReward(towerScore);
+        vault += bonus;
+        showToast(`${TRIAL_SPECS[activeTrial.id].name} 성공! +${bonus}점 금고 저장`);
+        sfx.checkpoint();
+        lastTrialId = activeTrial.id;
+        activeTrial = null;
+        trialCooldown = BALANCE.trials.cooldown;
+      } else if (activeTrial.status === 'failed') {
+        showToast('시험이 조용히 흘러갔다…');
+        lastTrialId = activeTrial.id;
+        activeTrial = null;
+        trialCooldown = BALANCE.trials.cooldown;
+      }
+    } else if (trialCooldown > 0) {
+      trialCooldown -= 1;
+    }
+    if (
+      !activeTrial &&
+      trialCooldown === 0 &&
+      floor >= BALANCE.trials.startFloor
+    ) {
+      activeTrial = startTrial(pickTrial(flowRng, lastTrialId));
+    }
+
     // ── 체크포인트 자동 저장 ──
     const frac = checkpointFraction(floor);
     if (frac > 0) {
@@ -297,6 +351,10 @@ export const actions = {
       aimRisk: null,
       fateTargetX: createFateTarget(combo),
       offers: drawOffers(flowRng),
+      trial:
+        activeTrial && activeTrial.status === 'active'
+          ? trialView(activeTrial)
+          : null,
       runLog,
     });
 
