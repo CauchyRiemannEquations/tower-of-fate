@@ -48,6 +48,7 @@ export function initialState(): GameState {
     gameOver: null,
     lastJudge: null,
     debug: { lastRoll: -1, lastEffective: 0, comOffset: 0, worstOverhang: 0 },
+    trial: null,
     runLog: [],
   };
 }

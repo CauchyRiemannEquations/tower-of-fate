@@ -25,6 +25,14 @@ import {
   type FairnessState,
   type Rng,
 } from '../src/game/systems/rng';
+import {
+  advanceTrial,
+  pickTrial,
+  startTrial,
+  trialReward,
+  type ActiveTrial,
+  type TrialId,
+} from '../src/game/systems/trials';
 import { tower } from '../src/game/systems/tower';
 
 // ── 운명의 표식 (actions.ts의 createFateTarget과 같은 규칙) ──
@@ -173,6 +181,10 @@ function playRun(policy: Policy, rng: Rng): RunResult {
   let stake = 0;
   let combo = 0;
   let fateX = createFateTarget(0, fateSide);
+  // 운명의 시험 — actions.ts와 같은 수명주기
+  let trial: ActiveTrial | null = null;
+  let trialCooldown = 0;
+  let lastTrialId: TrialId | null = null;
 
   for (let turn = 0; turn < 300; turn++) {
     const floor = tower.blocks.length;
@@ -204,6 +216,35 @@ function playRun(policy: Policy, rng: Rng): RunResult {
 
     combo = b.perfect ? combo + 1 : 0;
     stake += gain;
+
+    // 시험 진행/보상 (actions.resolvePlacement와 같은 규칙)
+    const baseX = tower.blocks[0]?.x ?? 0;
+    const dxBase = choice.x - baseX;
+    const side: -1 | 0 | 1 = Math.abs(dxBase) <= 4 ? 0 : dxBase > 0 ? 1 : -1;
+    if (trial && trial.status === 'active') {
+      trial = advanceTrial(trial, {
+        blockId: choice.id,
+        side,
+        risk: b.total,
+        perfect: b.perfect,
+      });
+      if (trial.status !== 'active') {
+        if (trial.status === 'success') vault += trialReward(stake);
+        lastTrialId = trial.id;
+        trial = null;
+        trialCooldown = BALANCE.trials.cooldown;
+      }
+    } else if (trialCooldown > 0) {
+      trialCooldown -= 1;
+    }
+    if (
+      !trial &&
+      trialCooldown === 0 &&
+      tower.blocks.length >= BALANCE.trials.startFloor
+    ) {
+      trial = startTrial(pickTrial(rng, lastTrialId));
+    }
+
     const frac = checkpointFraction(tower.blocks.length);
     if (frac > 0) {
       const banked = Math.round(stake * frac);
