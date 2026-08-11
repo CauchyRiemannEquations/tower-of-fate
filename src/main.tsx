@@ -10,3 +10,12 @@ if (document.fonts?.load) {
 }
 
 createRoot(document.getElementById('root')!).render(<App />);
+
+// 설치형 웹앱(PWA): 프로덕션에서만 서비스 워커 등록
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {
+      /* 등록 실패해도 게임은 정상 동작 */
+    });
+  });
+}
