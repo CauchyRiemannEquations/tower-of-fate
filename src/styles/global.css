@@ -718,19 +718,20 @@ button {
   border-radius: 999px;
 }
 
-.btn-daily {
+/* 시작 버튼 — 본 게임은 언제나 오늘의 운명 */
+.btn-start {
   flex-direction: column;
-  gap: 1px;
-  width: min(250px, 78vw);
-  color: #ffd23c;
-  background: rgba(255, 210, 60, 0.08);
-  border: 1px solid rgba(255, 210, 60, 0.4);
+  gap: 3px;
 }
 
-.btn-daily small {
-  font-size: 11px;
-  font-weight: 600;
-  color: #d9c48a;
+.start-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #ffe9b0;
+  opacity: 0.95;
 }
 
 .menu-sub-actions {

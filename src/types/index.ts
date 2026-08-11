@@ -42,8 +42,11 @@ export type Phase =
   | 'collapsing'
   | 'gameover';
 
-/** 일반 판 / 모두가 같은 블록 순서를 받는 오늘의 운명 */
-export type RunMode = 'free' | 'daily';
+/**
+ * 본 게임은 언제나 'daily' — 날짜 시드로 모두가 같은 블록 순서를 받는
+ * 오늘의 운명. 'free'(비시드)는 튜토리얼 연습 판에서만 쓰인다.
+ */
+export type RunMode = 'daily' | 'free';
 
 /** 운명의 시험 HUD 칩 표시용 */
 export interface TrialView {

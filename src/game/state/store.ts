@@ -30,7 +30,7 @@ function loadTutorialDone(): boolean {
 export function initialState(): GameState {
   return {
     phase: 'menu',
-    mode: 'free',
+    mode: 'daily',
     dailyLabel: '',
     floor: 0,
     vault: 0,

@@ -108,12 +108,13 @@ function createFateTarget(combo: number): number {
 
 export const actions = {
   /**
-   * 새 판 시작. mode를 생략하면 직전 판과 같은 모드로 시작한다.
-   * 오늘의 운명: 날짜 시드로 선택지 순서가 고정된 하루 한 판의 도전.
+   * 새 판 시작. 본 게임은 언제나 "오늘의 운명" — 날짜 시드로
+   * 선택지와 시험 순서가 고정되어 오늘의 모두가 같은 블록을 받는다.
+   * 비시드 'free'는 튜토리얼 연습 판에서만 쓰인다.
    */
-  startGame(mode?: RunMode) {
+  startGame(mode: RunMode = 'daily') {
     const prev = store.getState();
-    const runMode: RunMode = mode ?? prev.mode;
+    const runMode = mode;
 
     tower.reset();
     fairness = { shieldUsed: false };

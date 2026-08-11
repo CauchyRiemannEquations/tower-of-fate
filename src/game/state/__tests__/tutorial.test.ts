@@ -37,8 +37,21 @@ describe('플레이 방법 (튜토리얼)', () => {
   it('본 게임 시작에는 튜토리얼이 끼어들지 않는다', () => {
     // 튜토리얼을 본 적 없는 첫 방문이라도
     expect(values.has('towerOfFate.tutorialDone')).toBe(false);
-    actions.startGame('free');
+    actions.startGame();
     expect(store.getState().tutorialStep).toBe(-1);
+  });
+
+  it('본 게임은 언제나 오늘의 운명 — 같은 날의 두 판은 같은 첫 손패를 받는다', () => {
+    actions.startGame();
+    const first = store.getState();
+    expect(first.mode).toBe('daily');
+    expect(first.dailyLabel).not.toBe('');
+    const offersA = [...first.offers];
+    const fateA = first.fateTargetX;
+
+    actions.startGame();
+    expect(store.getState().offers).toEqual(offersA);
+    expect(store.getState().fateTargetX).toBe(fateA);
   });
 
   it('연습 판 뒤에 시작한 본 게임에는 튜토리얼 플래그가 남지 않는다', () => {

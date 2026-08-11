@@ -38,29 +38,20 @@ export function MenuScreen() {
         </div>
       )}
       <button
-        className="btn btn-primary btn-lg"
+        className="btn btn-primary btn-lg btn-start"
         onClick={() => {
           unlockAudio();
-          actions.startGame('free');
+          actions.startGame();
         }}
       >
         <span className="btn-main">
           <IcPlay size={18} />
           게임 시작
         </span>
-      </button>
-      <button
-        className="btn btn-daily"
-        onClick={() => {
-          unlockAudio();
-          actions.startGame('daily');
-        }}
-      >
-        <span className="btn-main">
-          <IcSpark size={16} />
-          {todayLabel()}의 운명
-        </span>
-        <small>오늘은 모두가 같은 블록 순서를 받아요</small>
+        <small className="start-sub">
+          <IcSpark size={11} />
+          {todayLabel()}의 운명 — 오늘은 모두가 같은 블록을 받아요
+        </small>
       </button>
       <div className="menu-sub-actions">
         <button className="btn btn-rank" onClick={() => setShowRank(true)}>
