@@ -83,11 +83,6 @@ export function HUD() {
           <IcSpark />
           {s.tower.toLocaleString()}
         </span>
-        {s.mode === 'daily' && (
-          <span className="chip daily-chip" title="모두가 같은 블록 순서를 받는 하루 한 번의 도전">
-            {s.dailyLabel}의 운명
-          </span>
-        )}
         <button
           className="icon-btn"
           onClick={actions.toggleSound}
@@ -107,21 +102,19 @@ export function HUD() {
       <div className={`risk-panel ${pct !== null ? riskClass(pct) : 'idle'}`}>
         <div className="risk-label-row">
           <span className="risk-label">붕괴 위험</span>
-          {risk && (
-            <span className={`fate-readout ${risk.perfect ? 'hit' : ''}`}>
-              {risk.perfect ? '표식 적중 · PERFECT' : '황금 표식을 노리세요'}
-            </span>
-          )}
-          {risk && (
+          {risk?.perfect && <span className="fate-readout hit">PERFECT!</span>}
+          {/* 세로 화면이 좁으므로 가장 큰 요인 하나만 보여준다 */}
+          {risk && risk.factors.length > 0 && (
             <span className="risk-factors-inline">
-              {risk.factors.slice(0, 2).map((f, i) => (
-                <span
-                  key={`${f.label}-${i}`}
-                  className={`factor ${f.delta > 0 ? 'up' : 'down'}`}
-                >
-                  {f.label} {f.delta > 0 ? `+${f.delta}` : f.delta}%
-                </span>
-              ))}
+              <span
+                className={`factor ${risk.factors[0].delta > 0 ? 'up' : 'down'}`}
+              >
+                {risk.factors[0].label}{' '}
+                {risk.factors[0].delta > 0
+                  ? `+${risk.factors[0].delta}`
+                  : risk.factors[0].delta}
+                %
+              </span>
             </span>
           )}
           <span className="risk-pct">{pct !== null ? `${pct}%` : '—'}</span>
