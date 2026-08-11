@@ -150,11 +150,19 @@ button {
   display: flex;
   gap: 4px;
   flex: 1;
+  min-width: 0;
   justify-content: flex-end;
   overflow: hidden;
 }
 
+.risk-factors-inline .factor {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .risk-label {
+  flex-shrink: 0;
   font-size: 12px;
   font-weight: 700;
   color: #b9a6f0;
@@ -181,6 +189,7 @@ button {
 }
 
 .risk-pct {
+  flex-shrink: 0;
   font-size: 18px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -250,12 +259,6 @@ button {
 .ev-value.minus {
   color: #ff8c3a;
   background: rgba(255, 140, 58, 0.14);
-}
-
-.daily-chip {
-  color: #ffd23c;
-  border-color: rgba(255, 210, 60, 0.4);
-  font-size: 12px;
 }
 
 /* 운명의 시험 — 자동 등장하는 미니 도전 패널 */
