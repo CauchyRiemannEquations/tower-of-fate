@@ -23,33 +23,38 @@ describe('기댓값 기반 점수', () => {
     expect(at(60)).toBeLessThan(at(85));
   });
 
-  it('배당률은 공정 배당 p/(1−p)이며 상한이 있다', () => {
-    expect(riskOdds(0.5)).toBeCloseTo(1, 5);
-    expect(riskOdds(0.7)).toBeCloseTo(0.7 / 0.3, 5);
+  it('문턱 이하의 안전 배치에는 스테이크 배당이 없다', () => {
+    const floor = BALANCE.score.stakeRiskFloor;
+    expect(riskOdds(floor)).toBe(0);
+    expect(riskOdds(floor - 0.03)).toBe(0);
+    expect(riskOdds(floor + 0.1)).toBeGreaterThan(0);
     expect(riskOdds(0.99)).toBe(BALANCE.score.oddsCap);
+    // 안전 배치의 획득 점수는 걸린 점수와 무관하다
+    const gain = (stake: number) =>
+      computeGain({
+        def: BLOCKS.wood,
+        riskPct: floor * 100 - 2,
+        perfect: false,
+        combo: 0,
+        stake,
+      });
+    expect(gain(1000)).toBe(gain(0));
   });
 
-  it('스테이크 배당의 기대 손실은 (1−엣지)×p×stake 다', () => {
-    const p = 0.4;
-    const stake = 500;
-    const base = computeGain({
-      def: BLOCKS.wood,
-      riskPct: p * 100,
-      perfect: false,
-      combo: 0,
-      stake: 0,
-    });
-    const withStake = computeGain({
-      def: BLOCKS.wood,
-      riskPct: p * 100,
-      perfect: false,
-      combo: 0,
-      stake,
-    });
-    const evDrop =
-      placementEV(withStake, p * 100, stake) - placementEV(base, p * 100, 0);
-    const expected = -(1 - BALANCE.score.payoutEdge) * p * stake;
-    expect(evDrop).toBeCloseTo(expected, 0);
+  it('안전 반복 쌓기는 걸린 점수가 커지면 기댓값 마이너스가 된다', () => {
+    const riskPct = 6; // 전형적인 중앙 배치 위험
+    const ev = (stake: number) => {
+      const gain = computeGain({
+        def: BLOCKS.wood,
+        riskPct,
+        perfect: false,
+        combo: 0,
+        stake,
+      });
+      return placementEV(gain, riskPct, stake);
+    };
+    expect(ev(0)).toBeGreaterThan(0);
+    expect(ev(500)).toBeLessThan(0);
   });
 
   it('걸린 점수가 커질수록 같은 배치의 기댓값이 나빠진다', () => {

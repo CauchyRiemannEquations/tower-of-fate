@@ -104,17 +104,21 @@ export const BALANCE = {
    * 점수 모델 — "한 층 더"가 기댓값 문제가 되도록 설계한다.
    *
    * 획득 점수 = 블록 점수 × (1 + riskBoost × p)
-   *          + 걸린 점수(stake) × min(oddsCap, p/(1−p)) × payoutEdge
+   *          + 걸린 점수(stake) × min(oddsCap, max(0, p − stakeRiskFloor)/(1−p)) × payoutEdge
    *
-   * p/(1−p)는 공정 배당률이고 payoutEdge(< 1)가 하우스 엣지다.
-   * 따라서 위험 배치의 기대 손실은 (1 − payoutEdge) × p × stake 로,
-   * 걸린 점수가 커질수록 기댓값이 서서히 나빠진다 — 판이 깊어질수록
-   * "언제 멈출까"가 진짜 수학적 결정이 된다.
+   * 스테이크 배당은 stakeRiskFloor를 넘는 위험에만 붙는다 — 운명은
+   * 안전한 자에게 배당을 주지 않는다. 문턱이 없으면 위험 5% 중앙
+   * 배치가 매 턴 스테이크의 ~5%를 복리로 얹는 "안전한 복리 머신"이
+   * 되어 중앙 쌓기가 무한정 이득이 된다.
+   * payoutEdge(< 1)는 하우스 엣지: 걸린 점수가 커질수록 기댓값이
+   * 서서히 나빠져 "언제 멈출까"가 진짜 수학적 결정이 된다.
    */
   score: {
     riskBoost: 1.5,
     payoutEdge: 0.9,
     oddsCap: 8,
+    /** 스테이크 배당이 붙기 시작하는 최소 위험 (0~1) */
+    stakeRiskFloor: 0.1,
     /** PERFECT는 블록 점수에 배율 (스테이크 배당에는 곱하지 않는다 —
      * 곱하면 기댓값이 항상 양수가 되어 영원히 도박하는 게 정답이 된다) */
     perfectMult: 1.25,
