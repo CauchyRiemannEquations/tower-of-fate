@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { actions } from '../game/state/actions';
 import { useGameStore } from '../hooks/useGameStore';
 import { BLOCKS } from '../game/config/blocks';
+import { readRun } from '../game/systems/insights';
 import type { BlockTypeId } from '../types';
 import { IcHome, IcRestart, IcTrophy } from './icons';
 import { FateReport } from './FateReport';
@@ -17,6 +18,10 @@ export function GameOverScreen() {
   const s = useGameStore();
   const [showRank, setShowRank] = useState(false);
   const info = s.gameOver;
+  const reading = useMemo(
+    () => (info ? readRun(s.runLog, s.stats, info) : null),
+    [s.runLog, s.stats, info],
+  );
   if (!info) return null;
 
   return (
@@ -30,6 +35,22 @@ export function GameOverScreen() {
           <span className="final-score-unit">점</span>
         </div>
         {info.newBest && <div className="new-best">최고 기록 갱신!</div>}
+
+        {reading && (
+          <>
+            <p className="fate-line">{reading.line}</p>
+            {reading.titles.length > 0 && (
+              <div className="title-chips">
+                {reading.titles.map((t) => (
+                  <span key={t.id} className="title-chip">
+                    <b>{t.name}</b>
+                    <small>{t.desc}</small>
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
         <div className="stats-grid">
           <div className="stat">

@@ -216,7 +216,7 @@ button {
   animation: danger-pulse 0.7s ease-in-out infinite;
 }
 
-/* 조준 중 실시간 기대값 — 성공/실패/기대 */
+/* 조준 중 실시간 기댓값 — 성공/실패/기대 */
 .ev-row {
   display: flex;
   gap: 6px;
@@ -718,19 +718,20 @@ button {
   border-radius: 999px;
 }
 
-.btn-daily {
+/* 시작 버튼 — 본 게임은 언제나 오늘의 운명 */
+.btn-start {
   flex-direction: column;
-  gap: 1px;
-  width: min(250px, 78vw);
-  color: #ffd23c;
-  background: rgba(255, 210, 60, 0.08);
-  border: 1px solid rgba(255, 210, 60, 0.4);
+  gap: 3px;
 }
 
-.btn-daily small {
-  font-size: 11px;
-  font-weight: 600;
-  color: #d9c48a;
+.start-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #ffe9b0;
+  opacity: 0.95;
 }
 
 .menu-sub-actions {
@@ -738,6 +739,37 @@ button {
   flex-direction: column;
   gap: 8px;
   width: min(220px, 72vw);
+}
+
+/* 첫 방문 유도 — 플레이 방법 버튼 강조 */
+.btn-tut-nudge {
+  position: relative;
+  border-color: rgba(126, 255, 201, 0.65);
+  color: #7effc9;
+  box-shadow: 0 0 14px rgba(126, 255, 201, 0.2);
+  animation: tut-nudge-pulse 1.6s ease-in-out infinite;
+  overflow: visible;
+  margin-top: 10px;
+}
+
+.tut-nudge-pill {
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #06231f;
+  background: #7effc9;
+  border-radius: 999px;
+  padding: 2.5px 10px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+@keyframes tut-nudge-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(126, 255, 201, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(126, 255, 201, 0.45); }
 }
 
 .menu-sub-actions .btn {
@@ -832,6 +864,47 @@ button {
 @keyframes best-blink {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.75; transform: scale(1.06); }
+}
+
+/* 운명의 회고 — 방금 판을 확률의 언어로 한 줄 되돌아보기 */
+.fate-line {
+  max-width: 320px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #cdbfff;
+  background: rgba(160, 140, 255, 0.08);
+  border: 1px solid rgba(160, 140, 255, 0.22);
+  border-radius: 12px;
+  padding: 9px 14px;
+}
+
+.title-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  max-width: 340px;
+}
+
+.title-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  background: rgba(255, 210, 60, 0.08);
+  border: 1px solid rgba(255, 210, 60, 0.4);
+  border-radius: 10px;
+  padding: 5px 11px;
+}
+
+.title-chip b {
+  font-size: 12.5px;
+  color: #ffd23c;
+}
+
+.title-chip small {
+  font-size: 10.5px;
+  color: #d9c48a;
 }
 
 .stats-grid {
@@ -1272,6 +1345,119 @@ button {
   font-size: 11px;
   color: #8d80bb;
   line-height: 1.5;
+}
+
+/* ── 분석서 차트 ────────────────────────────────────── */
+.fr-chart {
+  width: 100%;
+  height: auto;
+  background: rgba(20, 14, 50, 0.45);
+  border: 1px solid rgba(160, 140, 255, 0.2);
+  border-radius: 10px;
+}
+
+.fr-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-top: -2px;
+}
+
+.fr-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  color: #a79ad0;
+}
+
+.fr-swatch {
+  width: 10px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.fr-swatch-bar {
+  background: linear-gradient(90deg, #35e0c9, #ffd23c, #ff4d5e);
+}
+
+.fr-swatch-line {
+  height: 2.5px;
+  border-radius: 99px;
+  background: #ffe98a;
+}
+
+/* 누적 실제 vs 이론 비교 막대 */
+.bb-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 4px 0 6px;
+}
+
+.bb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bb-label {
+  display: flex;
+  flex-direction: column;
+  width: 64px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: #cdbfff;
+}
+
+.bb-label em {
+  font-style: normal;
+  font-size: 9.5px;
+  color: #8d80bb;
+}
+
+.bb-bars {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.bb-track {
+  position: relative;
+  height: 12px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.bb-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 99px;
+}
+
+.bb-actual {
+  background: linear-gradient(90deg, #1fbfae, #35e0c9);
+}
+
+.bb-theory {
+  background: rgba(160, 140, 255, 0.55);
+}
+
+.bb-val {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  color: #f0ecff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.fr-details-nested {
+  margin-top: 2px;
 }
 
 /* 게임오버 패널이 분석서까지 담도록 스크롤 허용 */

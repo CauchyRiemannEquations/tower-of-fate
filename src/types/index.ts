@@ -42,8 +42,11 @@ export type Phase =
   | 'collapsing'
   | 'gameover';
 
-/** 일반 판 / 모두가 같은 블록 순서를 받는 오늘의 운명 */
-export type RunMode = 'free' | 'daily';
+/**
+ * 본 게임은 언제나 'daily' — 날짜 시드로 모두가 같은 블록 순서를 받는
+ * 오늘의 운명. 'free'(비시드)는 튜토리얼 연습 판에서만 쓰인다.
+ */
+export type RunMode = 'daily' | 'free';
 
 /** 운명의 시험 HUD 칩 표시용 */
 export interface TrialView {
@@ -100,7 +103,7 @@ export interface GameOverInfo {
   escaped: boolean;
   finalScore: number;
   newBest: boolean;
-  /** 마지막 결정 시점에 걸려 있던 탑 위 점수 (분석서 기대값용) */
+  /** 마지막 결정 시점에 걸려 있던 탑 위 점수 (분석서 기댓값용) */
   towerAtStake: number;
 }
 
@@ -129,10 +132,10 @@ export interface GameState {
   combo: number;
   stats: RunStats;
   soundOn: boolean;
-  /** -1: 꺼짐, 0~2: 진행 중 */
+  /** -1: 꺼짐, 0~2: 진행 중 (튜토리얼은 메뉴에서만 시작하는 연습 판) */
   tutorialStep: number;
-  /** 메뉴의 "플레이 방법"으로 진입한 튜토리얼인지 (완료 시 메인 복귀) */
-  tutorialReplay: boolean;
+  /** 튜토리얼을 한 번이라도 마쳤는지 — 메뉴의 첫 방문 유도 배지용 */
+  tutorialDone: boolean;
   toast: { id: number; text: string } | null;
   gameOver: GameOverInfo | null;
   lastJudge: JudgeResult | null;

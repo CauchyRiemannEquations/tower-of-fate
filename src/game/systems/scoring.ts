@@ -2,14 +2,14 @@ import type { BlockDef } from '../../types';
 import { BALANCE } from '../config/balance';
 
 /**
- * 점수 모델 — "한 층 더 vs 지금 탈출"이 기대값 문제가 되도록 설계.
+ * 점수 모델 — "한 층 더 vs 지금 탈출"이 기댓값 문제가 되도록 설계.
  *
  * 획득 점수 = 블록 점수 × (1 + riskBoost × p)
  *          + 걸린 점수(stake) × min(oddsCap, p/(1−p)) × payoutEdge
  *
  * p/(1−p)는 붕괴 확률 p의 공정 배당률이다. payoutEdge < 1 이므로
  * 위험 배치의 스테이크 기대 손실은 (1 − payoutEdge) × p × stake:
- * 걸린 점수가 커질수록 한 층 더의 기대값이 서서히 나빠지고,
+ * 걸린 점수가 커질수록 한 층 더의 기댓값이 서서히 나빠지고,
  * 어느 순간 탈출이 수학적 정답이 된다. 그 지점을 읽는 것이 실력이다.
  */
 
@@ -58,7 +58,7 @@ export function computeGain({
 }
 
 /**
- * 이 배치의 기대값 — 생존 시 gain을 얻고, 붕괴 시 stake를 잃는다.
+ * 이 배치의 기댓값 — 생존 시 gain을 얻고, 붕괴 시 stake를 잃는다.
  * 조준 중 HUD에 그대로 표시된다.
  */
 export function placementEV(

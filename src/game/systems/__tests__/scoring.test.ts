@@ -8,7 +8,7 @@ import {
   riskOdds,
 } from '../scoring';
 
-describe('기대값 기반 점수', () => {
+describe('기댓값 기반 점수', () => {
   it('위험이 높을수록 성공 보상이 커진다', () => {
     const at = (riskPct: number) =>
       computeGain({
@@ -52,7 +52,7 @@ describe('기대값 기반 점수', () => {
     expect(evDrop).toBeCloseTo(expected, 0);
   });
 
-  it('걸린 점수가 커질수록 같은 배치의 기대값이 나빠진다', () => {
+  it('걸린 점수가 커질수록 같은 배치의 기댓값이 나빠진다', () => {
     const ev = (stake: number) => {
       const gain = computeGain({
         def: BLOCKS.gold,

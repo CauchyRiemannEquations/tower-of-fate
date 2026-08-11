@@ -19,10 +19,18 @@ function loadSound(): boolean {
   }
 }
 
+function loadTutorialDone(): boolean {
+  try {
+    return localStorage.getItem(LS_KEYS.tutorial) === 'done';
+  } catch {
+    return true; // 저장소를 못 읽으면 유도 배지를 띄우지 않는다
+  }
+}
+
 export function initialState(): GameState {
   return {
     phase: 'menu',
-    mode: 'free',
+    mode: 'daily',
     dailyLabel: '',
     floor: 0,
     vault: 0,
@@ -43,7 +51,7 @@ export function initialState(): GameState {
     },
     soundOn: loadSound(),
     tutorialStep: -1,
-    tutorialReplay: false,
+    tutorialDone: loadTutorialDone(),
     toast: null,
     gameOver: null,
     lastJudge: null,

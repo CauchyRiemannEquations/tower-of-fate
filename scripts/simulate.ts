@@ -88,9 +88,9 @@ interface Policy {
 }
 
 /**
- * 선택지 각각을 주어진 x 후보에서 평가해 조정 기대값 최고의 수를 찾는다.
+ * 선택지 각각을 주어진 x 후보에서 평가해 조정 기댓값 최고의 수를 찾는다.
  * lambda는 분산 회피 계수: 수의 가치를 EV − λ·p·stake 로 평가한다
- * (λ=0 이면 순수 기대값 탐욕, λ>0 이면 파산 위험을 기피하는 신중한 플레이).
+ * (λ=0 이면 순수 기댓값 탐욕, λ>0 이면 파산 위험을 기피하는 신중한 플레이).
  */
 function bestMove(
   offers: BlockTypeId[],
@@ -140,7 +140,7 @@ function evPolicy(name: string, useFate: boolean, lambda: number): Policy {
 }
 
 const policies: Policy[] = [
-  // 순수 기대값 탐욕 — EV≥0 이면 계속. 거의 항상 파산하는 반면교사
+  // 순수 기댓값 탐욕 — EV≥0 이면 계속. 거의 항상 파산하는 반면교사
   evPolicy('탐욕·중앙', false, 0),
   evPolicy('탐욕·표식', true, 0),
   // 분산 회피 신중 플레이 (λ=0.3)

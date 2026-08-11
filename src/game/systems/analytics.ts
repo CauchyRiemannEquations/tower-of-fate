@@ -73,6 +73,20 @@ export function survivedStreakProb(log: RiskAttempt[]): number {
     .reduce((p, a) => p * (1 - a.risk / 100), 1);
 }
 
+/**
+ * 생존 확률 감쇠 곡선 — i번째 시도까지 전부 통과할 이론 확률 (0~1).
+ * 각 시도의 (1 − 위험)을 차례로 곱해 만든다. 분석서 그래프용.
+ */
+export function survivalCurve(log: RiskAttempt[]): number[] {
+  const curve: number[] = [];
+  let p = 1;
+  for (const a of log) {
+    p *= 1 - a.risk / 100;
+    curve.push(p);
+  }
+  return curve;
+}
+
 /** 이번 판에서 생존한 가장 높은 위험의 시도 */
 export function highestSurvived(log: RiskAttempt[]): RiskAttempt | null {
   let best: RiskAttempt | null = null;
@@ -83,7 +97,7 @@ export function highestSurvived(log: RiskAttempt[]): RiskAttempt | null {
 }
 
 /**
- * 마지막 결정 시점의 단순 기대값 분석.
+ * 마지막 결정 시점의 단순 기댓값 분석.
  *
  * 가정 (사실이 아닌 근사치이며 UI에도 "단순 추정"으로 표기):
  * - "한 층 더"의 예상 획득 점수는 마지막 시도의 획득 점수(붕괴 시
@@ -98,7 +112,7 @@ export interface EvAnalysis {
   expectedGain: number;
   /** 성공 확률 (0~1) */
   successProb: number;
-  /** 계속 쌓을 때의 단순 기대값 */
+  /** 계속 쌓을 때의 단순 기댓값 */
   evContinue: number;
   /** 멈출 때의 확정값 */
   evStop: number;

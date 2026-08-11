@@ -51,7 +51,7 @@ let lastTrialId: TrialId | null = null;
 let toastId = 0;
 /** 운명의 표식은 좌우를 번갈아 가며 제안한다. */
 let nextFateSide: -1 | 1 = 1;
-/** 메뉴의 "플레이 방법"으로 시작된 판인지 — 튜토리얼 종료 시 메인 복귀 */
+/** 다음 startGame이 튜토리얼 연습 판인지 — 시작 시 소비된다 */
 let tutorialFromMenu = false;
 
 function showToast(text: string) {
@@ -108,12 +108,13 @@ function createFateTarget(combo: number): number {
 
 export const actions = {
   /**
-   * 새 판 시작. mode를 생략하면 직전 판과 같은 모드로 시작한다.
-   * 오늘의 운명: 날짜 시드로 선택지 순서가 고정된 하루 한 판의 도전.
+   * 새 판 시작. 본 게임은 언제나 "오늘의 운명" — 날짜 시드로
+   * 선택지와 시험 순서가 고정되어 오늘의 모두가 같은 블록을 받는다.
+   * 비시드 'free'는 튜토리얼 연습 판에서만 쓰인다.
    */
-  startGame(mode?: RunMode) {
+  startGame(mode: RunMode = 'daily') {
     const prev = store.getState();
-    const runMode: RunMode = mode ?? prev.mode;
+    const runMode = mode;
 
     tower.reset();
     fairness = { shieldUsed: false };
@@ -129,12 +130,11 @@ export const actions = {
     nextFateSide = flowRng() < 0.5 ? -1 : 1;
     const fateTarget = createFateTarget(0);
 
-    let tutorialStep = -1;
-    try {
-      if (!localStorage.getItem(LS_KEYS.tutorial)) tutorialStep = 0;
-    } catch {
-      /* noop */
-    }
+    // 튜토리얼은 메뉴의 "플레이 방법"에서만 시작하는 연습 판이다.
+    // 본 게임에 끼어들지 않도록, 플래그는 여기서 소비된다.
+    const isTutorialRun = tutorialFromMenu;
+    tutorialFromMenu = false;
+
     store.setState({
       ...initialState(),
       best: prev.best,
@@ -146,8 +146,7 @@ export const actions = {
         guaranteeSafe: BALANCE.offers.safeFirstHand,
       }),
       fateTargetX: fateTarget,
-      tutorialStep,
-      tutorialReplay: tutorialFromMenu,
+      tutorialStep: isTutorialRun ? 0 : -1,
     });
     gameEvents.emit('reset');
   },
@@ -163,13 +162,8 @@ export const actions = {
     gameEvents.emit('reset');
   },
 
-  /** 메뉴의 "플레이 방법" — 튜토리얼을 다시 보여주고 끝나면 메인으로 */
+  /** 메뉴의 "플레이 방법" — 연습 판을 시작하고, 끝나면 메인으로 돌아온다 */
   replayTutorial() {
-    try {
-      localStorage.removeItem(LS_KEYS.tutorial);
-    } catch {
-      /* noop */
-    }
     tutorialFromMenu = true;
     actions.startGame('free');
   },
@@ -229,7 +223,7 @@ export const actions = {
       },
     });
 
-    // 점수는 생존/붕괴 무관하게 산출해 분석서(기대값)에 기록.
+    // 점수는 생존/붕괴 무관하게 산출해 분석서(기댓값)에 기록.
     // 가운데 정렬과 별개로 운명의 표식을 맞힌 경우에만 콤보가 이어진다.
     const perfect = breakdown.perfect;
     const combo = perfect ? s.combo + 1 : 0;
@@ -404,6 +398,10 @@ export const actions = {
     gameEvents.emit('banked');
   },
 
+  /**
+   * 튜토리얼 마지막 단계의 버튼 — 연습 판을 끝내고 메인으로 돌아간다.
+   * 본 게임으로 바로 이어지지 않는다: 시작은 플레이어의 몫.
+   */
   dismissTutorialStep() {
     const s = store.getState();
     if (s.tutorialStep === 2) {
@@ -412,13 +410,9 @@ export const actions = {
       } catch {
         /* noop */
       }
-      // 메뉴의 "플레이 방법"으로 본 경우에만 메인으로 복귀,
-      // 첫 게임 중의 튜토리얼이면 판을 계속 진행한다
-      if (s.tutorialReplay) {
-        actions.toMenu();
-        return;
-      }
-      store.setState({ tutorialStep: -1 });
+      actions.toMenu();
+      store.setState({ tutorialDone: true });
+      showToast('튜토리얼 완료! 이제 본 게임을 즐겨보세요');
     }
   },
 
