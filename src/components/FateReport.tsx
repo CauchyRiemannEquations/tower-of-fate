@@ -62,9 +62,21 @@ export function FateReport() {
 
   const analysis = useMemo(() => {
     if (log.length === 0) return null;
+    const cumulative = loadCumulative();
+    // 누적 전체 — 실제 생존율과 이론 생존율의 수렴을 보여주기 위한 합계
+    const total = BUCKET_ORDER.reduce(
+      (acc, k) => {
+        acc.attempts += cumulative[k].attempts;
+        acc.survived += cumulative[k].survived;
+        acc.riskSum += cumulative[k].riskSum;
+        return acc;
+      },
+      { attempts: 0, survived: 0, riskSum: 0 },
+    );
     return {
       run: bucketize(log),
-      cumulative: loadCumulative(),
+      cumulative,
+      total,
       streak: survivedStreakProb(log),
       survivedCount: log.filter((a) => a.survived).length,
       top: highestSurvived(log),
@@ -108,6 +120,19 @@ export function FateReport() {
           <details className="fr-details">
             <summary>누적 기록 보기</summary>
             <BucketTable stats={analysis.cumulative} />
+            {analysis.total.attempts >= 50 && (
+              <p className="fr-note">
+                지금까지 {analysis.total.attempts.toLocaleString()}번의 판정 —
+                실제 생존율{' '}
+                {pct(analysis.total.survived / analysis.total.attempts, 0)},
+                이론{' '}
+                {pct(
+                  1 - analysis.total.riskSum / analysis.total.attempts / 100,
+                  0,
+                )}
+                . 판이 쌓일수록 두 숫자는 서로에게 다가가요.
+              </p>
+            )}
           </details>
 
           {analysis.ev && analysis.ev.towerAtStake > 0 && (
