@@ -54,7 +54,7 @@ export function HUD() {
   const risk = s.aimRisk;
   const pct = risk?.total ?? null;
 
-  // 조준 중 실시간 기대값 — 성공 시 획득, 실패 시 잃는 점수, 그 기대값
+  // 조준 중 실시간 기댓값 — 성공 시 획득, 실패 시 잃는 점수, 그 기댓값
   const aimingDef = s.phase === 'aiming' && s.selected ? BLOCKS[s.selected] : null;
   let evInfo: { gain: number; ev: number } | null = null;
   if (risk && aimingDef) {
@@ -137,7 +137,7 @@ export function HUD() {
             )}
             <span
               className={`ev-item ev-value ${evInfo.ev >= 0 ? 'plus' : 'minus'}`}
-              title="기대값 = 생존 확률 × 획득 − 붕괴 확률 × 걸린 점수"
+              title="기댓값 = 생존 확률 × 획득 − 붕괴 확률 × 걸린 점수"
             >
               기대 {evInfo.ev >= 0 ? '+' : '−'}
               {Math.abs(Math.round(evInfo.ev)).toLocaleString()}

@@ -229,7 +229,7 @@ export const actions = {
       },
     });
 
-    // 점수는 생존/붕괴 무관하게 산출해 분석서(기대값)에 기록.
+    // 점수는 생존/붕괴 무관하게 산출해 분석서(기댓값)에 기록.
     // 가운데 정렬과 별개로 운명의 표식을 맞힌 경우에만 콤보가 이어진다.
     const perfect = breakdown.perfect;
     const combo = perfect ? s.combo + 1 : 0;

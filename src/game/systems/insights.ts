@@ -39,14 +39,14 @@ function buildLine(
     return `위험 ${last.risk}%의 도전이 운명을 갈랐어요. 여기까지 살아서 온 확률 ${pct(streak)}는 이미 충분한 행운이었죠.`;
   }
 
-  // 탈출 — 마지막 결정의 단순 기대값으로 타이밍을 회고한다
+  // 탈출 — 마지막 결정의 단순 기댓값으로 타이밍을 회고한다
   const ev = lastDecisionEV(log, info.towerAtStake);
   if (ev && info.towerAtStake > 0) {
     const delta = Math.round(ev.evContinue - ev.evStop);
     if (delta <= 0) {
-      return `탈출 시점의 '한 층 더' 기대값은 ${delta}점 — 수학이 고개를 끄덕이는 탈출이었어요.`;
+      return `탈출 시점의 '한 층 더' 기댓값은 ${delta}점 — 수학이 고개를 끄덕이는 탈출이었어요.`;
     }
-    return `'한 층 더'의 기대값이 아직 +${delta}점 남아 있었어요. 물론, 기대값이 전부는 아니지만요.`;
+    return `'한 층 더'의 기댓값이 아직 +${delta}점 남아 있었어요. 물론, 기댓값이 전부는 아니지만요.`;
   }
   return `이번 판의 모든 판정을 통과할 확률은 ${pct(streak)}였어요.`;
 }
@@ -69,7 +69,7 @@ function buildTitles(
     titles.push({
       id: 'mathematician',
       name: '수학자의 탈출',
-      desc: '기대값이 음수로 돌아선 뒤에 탈출했어요',
+      desc: '기댓값이 음수로 돌아선 뒤에 탈출했어요',
     });
   }
   if (info.escaped && log.length >= 5 && log.every((a) => a.risk < 20)) {

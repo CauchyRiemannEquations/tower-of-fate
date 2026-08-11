@@ -216,7 +216,7 @@ button {
   animation: danger-pulse 0.7s ease-in-out infinite;
 }
 
-/* 조준 중 실시간 기대값 — 성공/실패/기대 */
+/* 조준 중 실시간 기댓값 — 성공/실패/기대 */
 .ev-row {
   display: flex;
   gap: 6px;

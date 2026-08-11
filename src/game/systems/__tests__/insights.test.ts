@@ -43,8 +43,8 @@ describe('운명의 회고', () => {
     expect(highRisk!.line).toContain('55%');
   });
 
-  it('기대값이 음수인 시점의 탈출에는 수학자의 탈출 칭호가 붙는다', () => {
-    // 마지막 시도: 위험 40%, 획득 30 → 계속 기대값 (500+30)×0.6=318 < 멈춤 500
+  it('기댓값이 음수인 시점의 탈출에는 수학자의 탈출 칭호가 붙는다', () => {
+    // 마지막 시도: 위험 40%, 획득 30 → 계속 기댓값 (500+30)×0.6=318 < 멈춤 500
     const log = [
       attempt(),
       attempt({ risk: 40, gained: 30, survived: true }),
@@ -54,12 +54,12 @@ describe('운명의 회고', () => {
     expect(r!.line).toContain('수학');
   });
 
-  it('아직 기대값이 남은 이른 탈출은 다르게 회고한다', () => {
-    // 위험 10%, 획득 100 → 계속 기대값 (50+100)×0.9=135 > 멈춤 50
+  it('아직 기댓값이 남은 이른 탈출은 다르게 회고한다', () => {
+    // 위험 10%, 획득 100 → 계속 기댓값 (50+100)×0.9=135 > 멈춤 50
     const log = [attempt({ risk: 10, gained: 100 })];
     const r = readRun(log, stats(), info({ towerAtStake: 50 }));
     expect(r!.titles.some((t) => t.id === 'mathematician')).toBe(false);
-    expect(r!.line).toContain('기대값');
+    expect(r!.line).toContain('기댓값');
   });
 
   it('희박한 확률을 뚫으면 기적의 생존자, 고위험 생존은 강철 심장', () => {

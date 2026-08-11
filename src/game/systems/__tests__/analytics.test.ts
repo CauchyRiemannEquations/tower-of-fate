@@ -88,7 +88,7 @@ describe('운명 분석서', () => {
     expect(m.b60).toEqual({ attempts: 3, survived: 2, riskSum: 195 });
   });
 
-  it('마지막 결정의 기대값이 정의대로 계산된다', () => {
+  it('마지막 결정의 기댓값이 정의대로 계산된다', () => {
     const log = [attempt(40, true, 50)];
     const ev = lastDecisionEV(log, 200);
     expect(ev).not.toBeNull();

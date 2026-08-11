@@ -100,7 +100,7 @@ export interface GameOverInfo {
   escaped: boolean;
   finalScore: number;
   newBest: boolean;
-  /** 마지막 결정 시점에 걸려 있던 탑 위 점수 (분석서 기대값용) */
+  /** 마지막 결정 시점에 걸려 있던 탑 위 점수 (분석서 기댓값용) */
   towerAtStake: number;
 }
 

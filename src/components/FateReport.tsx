@@ -137,7 +137,7 @@ export function FateReport() {
 
           {analysis.ev && analysis.ev.towerAtStake > 0 && (
             <details className="fr-details">
-              <summary>마지막 결정의 단순 기대값</summary>
+              <summary>마지막 결정의 단순 기댓값</summary>
               <div className="fr-ev">
                 <div>
                   걸려 있던 탑 위 점수: <b>{analysis.ev.towerAtStake}점</b>
@@ -147,7 +147,7 @@ export function FateReport() {
                   확률 {pct(analysis.ev.successProb, 0)})
                 </div>
                 <div>
-                  계속 쌓기 기대값 ≈ <b>{Math.round(analysis.ev.evContinue)}점</b>{' '}
+                  계속 쌓기 기댓값 ≈ <b>{Math.round(analysis.ev.evContinue)}점</b>{' '}
                   / 멈추기 = <b>{analysis.ev.evStop}점</b>
                 </div>
                 <p className="fr-note">
