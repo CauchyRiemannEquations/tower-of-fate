@@ -5,18 +5,26 @@ import { BALANCE } from '../config/balance';
  * 점수 모델 — "한 층 더 vs 지금 탈출"이 기댓값 문제가 되도록 설계.
  *
  * 획득 점수 = 블록 점수 × (1 + riskBoost × p)
- *          + 걸린 점수(stake) × min(oddsCap, p/(1−p)) × payoutEdge
+ *          + 걸린 점수(stake) × riskOdds(p) × payoutEdge
  *
- * p/(1−p)는 붕괴 확률 p의 공정 배당률이다. payoutEdge < 1 이므로
- * 위험 배치의 스테이크 기대 손실은 (1 − payoutEdge) × p × stake:
- * 걸린 점수가 커질수록 한 층 더의 기댓값이 서서히 나빠지고,
- * 어느 순간 탈출이 수학적 정답이 된다. 그 지점을 읽는 것이 실력이다.
+ * riskOdds는 stakeRiskFloor를 넘는 초과 위험의 배당률이다:
+ * 저위험(중앙) 배치는 블록 점수만 얻고 스테이크는 불리지 못하므로,
+ * 걸린 점수가 커질수록 안전 반복 쌓기는 명백히 기댓값 마이너스가
+ * 된다. 점수를 불리려면 문턱 위의 진짜 베팅이 필요하고,
+ * payoutEdge(< 1)의 하우스 엣지 때문에 그 베팅도 언젠가는 멈춰야
+ * 한다. 그 지점을 읽는 것이 실력이다.
  */
 
-/** 붕괴 확률 p(0~1)의 배당률 — 상한이 있는 p/(1−p) */
+/**
+ * 붕괴 확률 p(0~1)의 스테이크 배당률.
+ * stakeRiskFloor 이하의 위험에는 배당이 없다 — 안전한 배치는
+ * 스테이크를 불리지 못하므로, 걸린 점수를 키우려면 진짜 위험을
+ * 감수해야 한다. 문턱을 넘는 초과 위험에만 배당이 붙는다.
+ */
 export function riskOdds(p: number): number {
   const s = BALANCE.score;
-  return Math.min(s.oddsCap, p / Math.max(0.05, 1 - p));
+  const excess = Math.max(0, p - s.stakeRiskFloor);
+  return Math.min(s.oddsCap, excess / Math.max(0.05, 1 - p));
 }
 
 export interface GainParams {
