@@ -69,7 +69,13 @@ export function MenuScreen() {
             랭킹
           </span>
         </button>
-        <button className="btn btn-ghost" onClick={actions.replayTutorial}>
+        <button
+          className={`btn ${s.tutorialDone ? 'btn-ghost' : 'btn-ghost btn-tut-nudge'}`}
+          onClick={actions.replayTutorial}
+        >
+          {!s.tutorialDone && (
+            <span className="tut-nudge-pill">처음이신가요? 여기부터!</span>
+          )}
           <span className="btn-main">
             <IcBook />
             플레이 방법

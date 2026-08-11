@@ -129,10 +129,10 @@ export interface GameState {
   combo: number;
   stats: RunStats;
   soundOn: boolean;
-  /** -1: 꺼짐, 0~2: 진행 중 */
+  /** -1: 꺼짐, 0~2: 진행 중 (튜토리얼은 메뉴에서만 시작하는 연습 판) */
   tutorialStep: number;
-  /** 메뉴의 "플레이 방법"으로 진입한 튜토리얼인지 (완료 시 메인 복귀) */
-  tutorialReplay: boolean;
+  /** 튜토리얼을 한 번이라도 마쳤는지 — 메뉴의 첫 방문 유도 배지용 */
+  tutorialDone: boolean;
   toast: { id: number; text: string } | null;
   gameOver: GameOverInfo | null;
   lastJudge: JudgeResult | null;

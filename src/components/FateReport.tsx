@@ -7,13 +7,179 @@ import {
   highestSurvived,
   lastDecisionEV,
   loadCumulative,
+  survivalCurve,
   survivedStreakProb,
 } from '../game/systems/analytics';
-import type { CumulativeStats } from '../types';
+import type { CumulativeStats, RiskAttempt } from '../types';
 import { IcBook, IcChevronDown, IcChevronUp } from './icons';
 
 function pct(v: number, digits = 1): string {
   return `${(v * 100).toFixed(digits)}%`;
+}
+
+function riskColor(risk: number): string {
+  if (risk < 20) return '#35e0c9';
+  if (risk < 40) return '#ffd23c';
+  if (risk < 60) return '#ff8c3a';
+  return '#ff4d5e';
+}
+
+/**
+ * 층별 위험 막대 + 생존 확률 감쇠 곡선.
+ * 막대는 그 층 배치의 붕괴 위험, 금색 선은 "여기까지 전부
+ * 생존할 이론 확률"이 층마다 곱으로 깎여 내려가는 모습이다.
+ */
+function RiskTimeline({ log }: { log: RiskAttempt[] }) {
+  const W = 320;
+  const H = 138;
+  const padL = 30;
+  const padR = 8;
+  const padT = 12;
+  const padB = 20;
+  const plotW = W - padL - padR;
+  const plotH = H - padT - padB;
+  const n = log.length;
+  const curve = survivalCurve(log);
+
+  const xc = (i: number) => padL + ((i + 0.5) / n) * plotW;
+  const y = (v: number) => padT + (1 - v) * plotH;
+  const barW = Math.max(3, Math.min(16, (plotW / n) * 0.55));
+  const labelStep = Math.max(1, Math.ceil(n / 6));
+
+  const curvePath = curve
+    .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xc(i).toFixed(1)} ${y(v).toFixed(1)}`)
+    .join(' ');
+
+  return (
+    <svg
+      className="fr-chart"
+      viewBox={`0 0 ${W} ${H}`}
+      role="img"
+      aria-label="층별 붕괴 위험과 생존 확률 곡선"
+    >
+      {/* 눈금선 0 / 50 / 100% */}
+      {[0, 0.5, 1].map((v) => (
+        <g key={v}>
+          <line
+            x1={padL}
+            x2={W - padR}
+            y1={y(v)}
+            y2={y(v)}
+            stroke="rgba(160,140,255,0.18)"
+            strokeWidth="1"
+            strokeDasharray={v === 0.5 ? '3 3' : undefined}
+          />
+          <text
+            x={padL - 5}
+            y={y(v) + 3}
+            textAnchor="end"
+            fontSize="8"
+            fill="#8d80bb"
+          >
+            {Math.round(v * 100)}%
+          </text>
+        </g>
+      ))}
+
+      {/* 층별 위험 막대 */}
+      {log.map((a, i) => {
+        const h = Math.max(1.5, (a.risk / 100) * plotH);
+        return (
+          <g key={i}>
+            <rect
+              x={xc(i) - barW / 2}
+              y={padT + plotH - h}
+              width={barW}
+              height={h}
+              rx={1.5}
+              fill={riskColor(a.risk)}
+              opacity={a.survived ? 0.85 : 1}
+            />
+            {!a.survived && (
+              <text
+                x={xc(i)}
+                y={padT + plotH - h - 4}
+                textAnchor="middle"
+                fontSize="9"
+                fontWeight="900"
+                fill="#ff4d5e"
+              >
+                ✕
+              </text>
+            )}
+            {(i % labelStep === 0 || i === n - 1) && (
+              <text
+                x={xc(i)}
+                y={H - 6}
+                textAnchor="middle"
+                fontSize="8"
+                fill="#8d80bb"
+              >
+                {a.floor}층
+              </text>
+            )}
+          </g>
+        );
+      })}
+
+      {/* 생존 확률 감쇠 곡선 */}
+      <path
+        d={curvePath}
+        fill="none"
+        stroke="#ffe98a"
+        strokeWidth="2"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {curve.map((v, i) => (
+        <circle key={i} cx={xc(i)} cy={y(v)} r="2" fill="#ffe98a" />
+      ))}
+      {/* 곡선 마지막 값 라벨 */}
+      <text
+        x={Math.min(xc(n - 1) + 4, W - padR)}
+        y={Math.max(9, y(curve[n - 1]) - 5)}
+        textAnchor={n > 4 ? 'end' : 'start'}
+        fontSize="8.5"
+        fontWeight="800"
+        fill="#ffe98a"
+      >
+        {pct(curve[n - 1], curve[n - 1] < 0.1 ? 1 : 0)}
+      </text>
+    </svg>
+  );
+}
+
+/** 누적 기록의 실제 vs 이론 생존율 비교 막대 */
+function BucketBars({ stats }: { stats: CumulativeStats }) {
+  const rows = BUCKET_ORDER.filter((k) => stats[k].attempts > 0);
+  if (rows.length === 0) return null;
+  return (
+    <div className="bb-wrap">
+      {rows.map((k) => {
+        const b = stats[k];
+        const actual = b.survived / b.attempts;
+        const theory = 1 - b.riskSum / b.attempts / 100;
+        return (
+          <div key={k} className="bb-row">
+            <span className="bb-label">
+              {BUCKET_LABELS[k]}
+              <em>{b.attempts}회</em>
+            </span>
+            <div className="bb-bars">
+              <div className="bb-track">
+                <i className="bb-fill bb-actual" style={{ width: pct(actual, 0) }} />
+                <span className="bb-val">실제 {pct(actual, 0)}</span>
+              </div>
+              <div className="bb-track">
+                <i className="bb-fill bb-theory" style={{ width: pct(theory, 0) }} />
+                <span className="bb-val">이론 {pct(theory, 0)}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function BucketTable({ stats }: { stats: CumulativeStats }) {
@@ -114,12 +280,29 @@ export function FateReport() {
             </p>
           )}
 
-          <div className="fr-section-title">이번 판 기록</div>
-          <BucketTable stats={analysis.run} />
+          <div className="fr-section-title">층별 위험과 생존 곡선</div>
+          <RiskTimeline log={log} />
+          <div className="fr-legend">
+            <span className="fr-legend-item">
+              <i className="fr-swatch fr-swatch-bar" />막대: 그 층의 붕괴 위험
+            </span>
+            <span className="fr-legend-item">
+              <i className="fr-swatch fr-swatch-line" />선: 여기까지 전부 생존할 확률
+            </span>
+          </div>
+
+          <details className="fr-details">
+            <summary>이번 판 구간별 기록</summary>
+            <BucketTable stats={analysis.run} />
+          </details>
 
           <details className="fr-details">
             <summary>누적 기록 보기</summary>
-            <BucketTable stats={analysis.cumulative} />
+            <BucketBars stats={analysis.cumulative} />
+            <details className="fr-details fr-details-nested">
+              <summary>표로 보기</summary>
+              <BucketTable stats={analysis.cumulative} />
+            </details>
             {analysis.total.attempts >= 50 && (
               <p className="fr-note">
                 지금까지 {analysis.total.attempts.toLocaleString()}번의 판정 —

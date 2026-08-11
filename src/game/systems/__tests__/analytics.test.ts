@@ -7,6 +7,7 @@ import {
   loadCumulative,
   mergeStats,
   recordRun,
+  survivalCurve,
   survivedStreakProb,
 } from '../analytics';
 import type { RiskAttempt } from '../../../types';
@@ -95,5 +96,13 @@ describe('운명 분석서', () => {
     expect(ev!.successProb).toBeCloseTo(0.6, 10);
     expect(ev!.evContinue).toBeCloseTo(250 * 0.6, 10);
     expect(ev!.evStop).toBe(200);
+  });
+
+  it('생존 곡선은 (1 − 위험)의 누적 곱으로 감쇠한다', () => {
+    const curve = survivalCurve([attempt(10), attempt(50), attempt(20)]);
+    expect(curve).toHaveLength(3);
+    expect(curve[0]).toBeCloseTo(0.9, 10);
+    expect(curve[1]).toBeCloseTo(0.9 * 0.5, 10);
+    expect(curve[2]).toBeCloseTo(0.9 * 0.5 * 0.8, 10);
   });
 });

@@ -73,6 +73,20 @@ export function survivedStreakProb(log: RiskAttempt[]): number {
     .reduce((p, a) => p * (1 - a.risk / 100), 1);
 }
 
+/**
+ * 생존 확률 감쇠 곡선 — i번째 시도까지 전부 통과할 이론 확률 (0~1).
+ * 각 시도의 (1 − 위험)을 차례로 곱해 만든다. 분석서 그래프용.
+ */
+export function survivalCurve(log: RiskAttempt[]): number[] {
+  const curve: number[] = [];
+  let p = 1;
+  for (const a of log) {
+    p *= 1 - a.risk / 100;
+    curve.push(p);
+  }
+  return curve;
+}
+
 /** 이번 판에서 생존한 가장 높은 위험의 시도 */
 export function highestSurvived(log: RiskAttempt[]): RiskAttempt | null {
   let best: RiskAttempt | null = null;
